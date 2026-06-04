@@ -1,0 +1,40 @@
+81 silly tarball no local data for @vladfrangu/async_event_emitter@https://registry.npmjs.org/@vladfrangu/async_event_emitter/-/async_event_emitter-2.4.7.tgz. Extracting by manifest.
+82 silly tarball no local data for @types/ws@https://registry.npmjs.org/@types/ws/-/ws-8.18.1.tgz. Extracting by manifest.
+83 silly tarball no local data for @types/node@https://registry.npmjs.org/@types/node/-/node-25.9.1.tgz. Extracting by manifest.
+84 silly tarball no local data for @sapphire/snowflake@https://registry.npmjs.org/@sapphire/snowflake/-/snowflake-3.5.3.tgz. Extracting by manifest.
+85 silly tarball no local data for pg@https://registry.npmjs.org/pg/-/pg-8.21.0.tgz. Extracting by manifest.
+86 silly tarball no local data for @sapphire/shapeshift@https://registry.npmjs.org/@sapphire/shapeshift/-/shapeshift-4.0.0.tgz. Extracting by manifest.
+87 silly tarball no local data for @sapphire/async-queue@https://registry.npmjs.org/@sapphire/async-queue/-/async-queue-1.5.5.tgz. Extracting by manifest.
+88 silly tarball no local data for @discordjs/ws@https://registry.npmjs.org/@discordjs/ws/-/ws-1.2.3.tgz. Extracting by manifest.
+89 silly tarball no local data for @discordjs/util@https://registry.npmjs.org/@discordjs/util/-/util-1.2.0.tgz. Extracting by manifest.
+90 silly tarball no local data for @discordjs/rest@https://registry.npmjs.org/@discordjs/rest/-/rest-2.6.1.tgz. Extracting by manifest.
+91 silly tarball no local data for @discordjs/formatters@https://registry.npmjs.org/@discordjs/formatters/-/formatters-0.6.2.tgz. Extracting by manifest.
+92 silly tarball no local data for @discordjs/builders@https://registry.npmjs.org/@discordjs/builders/-/builders-1.14.1.tgz. Extracting by manifest.
+93 silly tarball no local data for @discordjs/collection@https://registry.npmjs.org/@discordjs/collection/-/collection-1.5.3.tgz. Extracting by manifest.
+94 silly tarball no local data for @sapphire/snowflake@https://registry.npmjs.org/@sapphire/snowflake/-/snowflake-3.5.5.tgz. Extracting by manifest.
+95 silly tarball no local data for @discordjs/collection@https://registry.npmjs.org/@discordjs/collection/-/collection-2.1.1.tgz. Extracting by manifest.
+96 silly tarball no local data for @discordjs/collection@https://registry.npmjs.org/@discordjs/collection/-/collection-2.1.1.tgz. Extracting by manifest.
+97 silly tarball no local data for pg-connection-string@https://registry.npmjs.org/pg-connection-string/-/pg-connection-string-2.13.0.tgz. Extracting by manifest.
+98 http fetch GET 200 https://registry.npmjs.org/lodash.snakecase/-/lodash.snakecase-4.1.1.tgz 13956ms (cache miss)
+99 http fetch GET 200 https://registry.npmjs.org/postgres-date/-/postgres-date-1.0.7.tgz 14009ms (cache miss)
+100 http fetch GET 200 https://registry.npmjs.org/postgres-bytea/-/postgres-bytea-1.0.1.tgz 14154ms (cache miss)
+101 http fetch GET 200 https://registry.npmjs.org/xtend/-/xtend-4.0.2.tgz 14242ms (cache miss)
+102 http fetch GET 200 https://registry.npmjs.org/pg-cloudflare/-/pg-cloudflare-1.4.0.tgz 16676ms (cache miss)
+103 http fetch GET 200 https://registry.npmjs.org/magic-bytes.js/-/magic-bytes.js-1.13.0.tgz 21549ms (cache miss)
+104 http fetch GET 200 https://registry.npmjs.org/pgpass/-/pgpass-1.0.5.tgz 22159ms (cache miss)
+105 http fetch GET 200 https://registry.npmjs.org/postgres-array/-/postgres-array-2.0.0.tgz 25132ms (cache miss)
+106 http fetch GET 200 https://registry.npmjs.org/pg-int8/-/pg-int8-1.0.1.tgz 25860ms (cache miss)
+107 http fetch GET 200 https://registry.npmjs.org/postgres-interval/-/postgres-interval-1.2.0.tgz 26474ms (cache miss)
+108 http fetch GET 200 https://registry.npmjs.org/split2/-/split2-4.2.0.tgz 29561ms (cache miss)
+109 http fetch GET 200 https://registry.npmjs.org/pg-connection-string/-/pg-connection-string-2.13.0.tgz 62928ms (cache miss)
+110 http fetch GET 200 https://registry.npmjs.org/@types/ws/-/ws-8.18.1.tgz 83047ms (cache miss)
+111 http fetch GET 200 https://registry.npmjs.org/pg-pool/-/pg-pool-3.14.0.tgz 118266ms (cache miss)
+112 http fetch GET 200 https://registry.npmjs.org/@discordjs/util/-/util-1.2.0.tgz 218650ms (cache miss)
+113 http fetch GET 200 https://registry.npmjs.org/fast-deep-equal/-/fast-deep-equal-3.1.3.tgz 225513ms (cache miss)
+114 http fetch GET 200 https://registry.npmjs.org/@discordjs/collection/-/collection-2.1.1.tgz 270240ms (cache miss)
+115 http fetch GET 200 https://registry.npmjs.org/@discordjs/collection/-/collection-1.5.3.tgz 282644ms (cache miss)
+116 http fetch GET 200 https://registry.npmjs.org/@discordjs/collection/-/collection-2.1.1.tgz 342729ms (cache miss)
+117 http fetch GET 200 https://registry.npmjs.org/dotenv/-/dotenv-16.6.1.tgz 394714ms (cache miss)
+118 http fetch GET 200 https://registry.npmjs.org/pg-types/-/pg-types-2.2.0.tgz 442762ms (cache miss)
+119 http fetch GET 200 https://registry.npmjs.org/@sapphire/async-queue/-/async-queue-1.5.5.tgz 450579ms (cache miss)
+120 http fetch GET 200 https://registry.npmjs.org/@discordjs/formatters/-/formatters-0.6.2.tgz 451710ms (cache miss)

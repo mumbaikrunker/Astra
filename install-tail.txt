@@ -1,0 +1,120 @@
+﻿npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord-api-types\payloads'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord-api-types\payloads'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord-api-types\payloads'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord-api-types\payloads'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord-api-types\payloads'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord-api-types\payloads'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord-api-types\payloads'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord-api-types\payloads'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord-api-types\payloads'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord-api-types\payloads'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord-api-types\payloads'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord-api-types\payloads'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord-api-types\payloads'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord-api-types\payloads'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord-api-types\payloads'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord-api-types\payloads'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\undici\docs\docs'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord-api-types\payloads'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord-api-types\payloads'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord-api-types\payloads'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord-api-types\payloads'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord-api-types\payloads'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord-api-types\payloads'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord-api-types\payloads'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord-api-types\payloads'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord-api-types\payloads'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord-api-types\payloads'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord-api-types\payloads'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord-api-types\payloads'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, open 
+'E:\astra\node_modules\undici\docs\docs\api\MockClient.md'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord-api-types\payloads'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\undici\docs'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord-api-types\payloads'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\undici\docs'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord-api-types\payloads'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord.js\src\structures'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord-api-types\payloads'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\undici\docs'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord-api-types\payloads'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\undici\docs'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord.js\src\managers'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\undici\docs'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord-api-types\payloads'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\undici\docs'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord.js\src\client'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\undici\docs'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord-api-types\payloads'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord.js\src'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, open 
+'E:\astra\node_modules\undici\README.md'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord-api-types\payloads'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord.js\src'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\undici\types'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord-api-types\payloads'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord.js\src'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\undici\docs'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord-api-types\payloads'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord.js\src'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\undici\docs'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\discord-api-types\payloads'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 
+'E:\astra\node_modules\undici\docs'

@@ -1,0 +1,28 @@
+const { query } = require('../../database/postgres');
+
+async function getTopPlayers(limit = 10) {
+  const sql = `
+    SELECT discord_id, username, rating, wins, losses
+    FROM users
+    ORDER BY rating DESC
+    LIMIT $1
+  `;
+  const result = await query(sql, [limit]);
+  return result.rows;
+}
+
+async function getUserRank(discordId) {
+  const sql = `
+    SELECT rank, rating, wins, losses, username
+    FROM (
+      SELECT discord_id, username, rating, wins, losses,
+        RANK() OVER (ORDER BY rating DESC) AS rank
+      FROM users
+    ) ranked
+    WHERE discord_id = $1
+  `;
+  const result = await query(sql, [discordId]);
+  return result.rows[0] || null;
+}
+
+module.exports = { getTopPlayers, getUserRank };
