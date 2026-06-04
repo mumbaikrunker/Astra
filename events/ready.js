@@ -2,6 +2,8 @@ const { setClient: setReadyClient } = require('../utils/readyManager');
 const { setClient: setQueueClient } = require('../utils/queueManager');
 const { Routes } = require('discord.js');
 
+const DEBUG = process.env.DEBUG === 'true';
+
 /**
  * Production-Ready Startup Dashboard
  *
@@ -14,6 +16,13 @@ module.exports = {
   async execute(client) {
     const startupTime = Date.now();
 
+    if (DEBUG) {
+      console.log(`[DEBUG] Ready event triggered`);
+      console.log(`[DEBUG] Bot tag: ${client.user.tag}`);
+      console.log(`[DEBUG] Bot ID: ${client.user.id}`);
+      console.log(`[DEBUG] Timestamp: ${new Date().toISOString()}`);
+    }
+
     console.log(`\n${'='.repeat(80)}`);
     console.log(`✅ [READY] Bot Connected: ${client.user.tag}`);
     console.log(`${'='.repeat(80)}\n`);
@@ -23,6 +32,10 @@ module.exports = {
       const registry = client.registry;
       const registryStats = registry.getStats();
       const commandNames = registry.getNames();
+
+      if (DEBUG) {
+        console.log(`[DEBUG] Registry stats:`, registryStats);
+      }
 
       // ===== COMMAND STATUS DASHBOARD =====
       console.log(`[COMMANDS] Registry Status:\n`);
@@ -50,6 +63,10 @@ module.exports = {
         if (errors.length > 5) {
           console.log(`     ... and ${errors.length - 5} more issues\n`);
         }
+
+        if (DEBUG) {
+          console.log(`[DEBUG] Full error list:`, errors);
+        }
       }
       console.log();
 
@@ -62,6 +79,12 @@ module.exports = {
       try {
         const clientId = client.user.id;
         const guildId = process.env.GUILD_ID;
+
+        if (DEBUG) {
+          console.log(`[DEBUG] Fetching Discord commands...`);
+          console.log(`[DEBUG] Client ID: ${clientId}`);
+          console.log(`[DEBUG] Guild ID: ${guildId || 'not set (global)'}`);
+        }
 
         if (guildId) {
           discordCommands = await client.rest.get(
@@ -76,8 +99,16 @@ module.exports = {
         console.log(`  📡 Scope: ${deploymentScope}`);
         console.log(`  ✅ Deployed: ${discordCommands.length} commands\n`);
 
+        if (DEBUG) {
+          console.log(`[DEBUG] Discord commands fetched:`, discordCommands.map(c => ({ name: c.name })));
+        }
+
         // Compare with registry
         const syncResult = registry.compareWithDiscord(discordCommands);
+
+        if (DEBUG) {
+          console.log(`[DEBUG] Sync result:`, syncResult);
+        }
 
         console.log(`  [SYNC CHECK]:`);
         console.log(`     • Local: ${syncResult.totalLocal}`);

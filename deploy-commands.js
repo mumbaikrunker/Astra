@@ -5,6 +5,8 @@ const commandRegistry = require('./systems/commandRegistry');
 const { loadCommands } = require('./utils/handler');
 const { Collection } = require('discord.js');
 
+const DEBUG = process.env.DEBUG === 'true';
+
 /**
  * Safe Command Deployment System
  *
@@ -98,6 +100,10 @@ async function deployCommandsToDiscord() {
     console.log(`[DEPLOY] Step 6: Comparing Local vs. Discord...`);
     const syncResult = commandRegistry.compareWithDiscord(currentDeployed);
 
+    if (DEBUG) {
+      console.log(`[DEBUG] Sync Result:`, JSON.stringify(syncResult, null, 2));
+    }
+
     console.log(`  📊 Sync Status:`);
     console.log(`     • Local Commands: ${syncResult.totalLocal}`);
     console.log(`     • Discord Commands: ${syncResult.totalDiscord}`);
@@ -148,6 +154,14 @@ async function deployCommandsToDiscord() {
     console.log(`[DEPLOY] Step 8: Deploying to Discord...`);
     console.log(`  🚀 Pushing ${commands.length} commands...`);
 
+    if (DEBUG) {
+      console.log(`[DEBUG] Deployment payload:`, {
+        commandCount: commands.length,
+        scope: deploymentScope,
+        commands: commands.map(c => ({ name: c.name, description: c.description }))
+      });
+    }
+
     if (process.env.GUILD_ID) {
       await rest.put(
         Routes.applicationGuildCommands(clientId, process.env.GUILD_ID),
@@ -158,6 +172,10 @@ async function deployCommandsToDiscord() {
     }
 
     console.log(`  ✅ Deployment successful!\n`);
+
+    if (DEBUG) {
+      console.log(`[DEBUG] Deployment finished at ${new Date().toISOString()}`);
+    }
 
     // ===== FINAL SUMMARY =====
     const deploymentTime = Date.now() - startTime;

@@ -1,6 +1,7 @@
 const { Client, Collection, GatewayIntentBits } = require('discord.js');
 const { token } = require('./configs/config');
 const { loadCommands, loadEvents, commandRegistry } = require('./utils/handler');
+const ErrorHandler = require('./utils/errorHandler');
 
 /**
  * Bot Entry Point - Production Ready
@@ -9,7 +10,26 @@ const { loadCommands, loadEvents, commandRegistry } = require('./utils/handler')
  * - Centralized command registry initialization
  * - Safe startup with error recovery
  * - Clean shutdown handling
+ * - Global error handling system
+ * - Debug mode support
  */
+
+const DEBUG = process.env.DEBUG === 'true';
+
+// Initialize global error handlers first
+ErrorHandler.initialize();
+
+if (DEBUG) {
+  console.log('[DEBUG] Bot starting in DEBUG mode');
+  console.log(`[DEBUG] Timestamp: ${new Date().toISOString()}`);
+  console.log(`[DEBUG] Node version: ${process.version}`);
+  console.log(`[DEBUG] Environment:`, {
+    DISCORD_TOKEN: !!process.env.DISCORD_TOKEN,
+    CLIENT_ID: !!process.env.CLIENT_ID,
+    GUILD_ID: process.env.GUILD_ID || 'Not set (global)',
+    DEBUG: DEBUG
+  });
+}
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 client.commands = new Collection();
@@ -32,6 +52,10 @@ client.commands = new Collection();
       console.warn(`   The bot will continue but some commands may not work\n`);
     }
 
+    if (DEBUG) {
+      console.log(`[DEBUG] Command registry state:`, commandRegistry.getStats());
+    }
+
     // Load events
     console.log(`[BOT] Loading event system...\n`);
     const eventReport = await loadEvents(client);
@@ -40,8 +64,16 @@ client.commands = new Collection();
       console.warn(`\n⚠️  WARNING: Event loading completed with ${eventReport.totalErrors} error(s)\n`);
     }
 
+    if (DEBUG) {
+      console.log(`[DEBUG] Events loaded:`, eventReport.events.map(e => ({ name: e.name, once: e.once })));
+    }
+
     // Lock registry after loading
     commandRegistry.lock();
+
+    if (DEBUG) {
+      console.log(`[DEBUG] Registry locked - no new commands can be registered`);
+    }
 
     // Initialize client with registry reference
     client.registry = commandRegistry;
@@ -62,12 +94,15 @@ client.commands = new Collection();
       client.destroy();
       process.exit(0);
     });
-
   } catch (error) {
     console.error(`\n${'='.repeat(80)}`);
     console.error(`❌ [BOT] STARTUP FAILED`);
     console.error(`${'='.repeat(80)}\n`);
     console.error(`Error: ${error.message}\n`);
+
+    if (DEBUG) {
+      console.error(`[DEBUG] Stack:`, error.stack);
+    }
 
     if (error.message.includes('token')) {
       console.error(`🔧 Troubleshooting: Invalid or missing bot token`);
@@ -83,13 +118,3 @@ client.commands = new Collection();
     process.exit(1);
   }
 })();
-
-// Handle uncaught exceptions
-process.on('uncaughtException', (error) => {
-  console.error('[BOT] Uncaught Exception:', error);
-});
-
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (error) => {
-  console.error('[BOT] Unhandled Promise Rejection:', error);
-});

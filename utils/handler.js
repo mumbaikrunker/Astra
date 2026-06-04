@@ -2,6 +2,8 @@ const fs = require('fs').promises;
 const path = require('path');
 const commandRegistry = require('../systems/commandRegistry');
 
+const DEBUG = process.env.DEBUG === 'true';
+
 /**
  * Load all commands from the commands directory
  * Uses centralized command registry for validation and tracking
@@ -15,20 +17,38 @@ async function loadCommands(client, dirPath = path.join(__dirname, '../commands'
   const startTime = Date.now();
   const loadedCommands = [];
 
+  if (DEBUG) {
+    console.log(`[DEBUG] Command loader starting at: ${dirPath}`);
+  }
+
   async function recursiveLoad(currentPath) {
     try {
       const entries = await fs.readdir(currentPath, { withFileTypes: true });
+
+      if (DEBUG) {
+        console.log(`[DEBUG] Found ${entries.length} entries in ${currentPath}`);
+      }
 
       for (const entry of entries) {
         const fullPath = path.join(currentPath, entry.name);
 
         if (entry.isDirectory()) {
+          if (DEBUG) {
+            console.log(`[DEBUG] Recursing into directory: ${entry.name}`);
+          }
           await recursiveLoad(fullPath);
           continue;
         }
 
         if (!entry.name.endsWith('.js')) {
+          if (DEBUG) {
+            console.log(`[DEBUG] Skipping non-JS file: ${entry.name}`);
+          }
           continue;
+        }
+
+        if (DEBUG) {
+          console.log(`[DEBUG] Loading command file: ${entry.name}`);
         }
 
         try {
@@ -47,14 +67,30 @@ async function loadCommands(client, dirPath = path.join(__dirname, '../commands'
               description: command.data.description || 'No description',
               file: path.relative(path.join(__dirname, '../commands'), fullPath)
             });
+
+            if (DEBUG) {
+              console.log(`[DEBUG] ✅ Command registered: ${result.command}`);
+            }
+          } else {
+            if (DEBUG) {
+              console.log(`[DEBUG] ❌ Command registration failed: ${result.error}`);
+            }
           }
           // Errors are automatically tracked in registry
         } catch (error) {
           console.error(`[Command Loader] Failed to load file ${fullPath}:`, error.message);
+
+          if (DEBUG) {
+            console.error(`[DEBUG] Stack: ${error.stack}`);
+          }
         }
       }
     } catch (error) {
       console.error(`[Command Loader] Error reading directory ${currentPath}:`, error);
+
+      if (DEBUG) {
+        console.error(`[DEBUG] Stack: ${error.stack}`);
+      }
     }
   }
 
@@ -102,9 +138,16 @@ async function loadCommands(client, dirPath = path.join(__dirname, '../commands'
     console.log(`   • Status: ${report.isValid ? '✅ VALID' : '❌ HAS ISSUES'}`);
     console.log();
 
+    if (DEBUG) {
+      console.log(`[DEBUG] Load report:`, JSON.stringify(report, null, 2));
+    }
+
     return report;
   } catch (error) {
     console.error('[Command Loader] Fatal error:', error);
+    if (DEBUG) {
+      console.error(`[DEBUG] Stack: ${error.stack}`);
+    }
     throw error;
   }
 }
@@ -122,20 +165,38 @@ async function loadEvents(client, dirPath = path.join(__dirname, '../events')) {
   const loadedEvents = [];
   const malformedEvents = [];
 
+  if (DEBUG) {
+    console.log(`[DEBUG] Event loader starting at: ${dirPath}`);
+  }
+
   try {
     const entries = await fs.readdir(dirPath, { withFileTypes: true });
+
+    if (DEBUG) {
+      console.log(`[DEBUG] Found ${entries.length} entries in ${dirPath}`);
+    }
 
     for (const entry of entries) {
       const fullPath = path.join(dirPath, entry.name);
 
       if (entry.isDirectory()) {
+        if (DEBUG) {
+          console.log(`[DEBUG] Recursing into event directory: ${entry.name}`);
+        }
         // Recursively load subdirectories
         await loadEvents(client, fullPath);
         continue;
       }
 
       if (!entry.name.endsWith('.js')) {
+        if (DEBUG) {
+          console.log(`[DEBUG] Skipping non-JS file: ${entry.name}`);
+        }
         continue;
+      }
+
+      if (DEBUG) {
+        console.log(`[DEBUG] Loading event file: ${entry.name}`);
       }
 
       try {
@@ -150,6 +211,9 @@ async function loadEvents(client, dirPath = path.join(__dirname, '../events')) {
             reason: `Invalid event name: ${event.name} (must be a non-empty string)`,
             type: 'invalid_name'
           });
+          if (DEBUG) {
+            console.log(`[DEBUG] ❌ Invalid event name: ${entry.name}`);
+          }
           continue;
         }
 
@@ -159,14 +223,23 @@ async function loadEvents(client, dirPath = path.join(__dirname, '../events')) {
             reason: `Missing or invalid "execute" function`,
             type: 'missing_execute'
           });
+          if (DEBUG) {
+            console.log(`[DEBUG] ❌ Missing execute function: ${event.name}`);
+          }
           continue;
         }
 
         // Register event listener
         if (event.once) {
           client.once(event.name, (...args) => event.execute(...args, client));
+          if (DEBUG) {
+            console.log(`[DEBUG] ✅ Event registered (once): ${event.name}`);
+          }
         } else {
           client.on(event.name, (...args) => event.execute(...args, client));
+          if (DEBUG) {
+            console.log(`[DEBUG] ✅ Event registered (on): ${event.name}`);
+          }
         }
 
         loadedEvents.push({
@@ -180,6 +253,10 @@ async function loadEvents(client, dirPath = path.join(__dirname, '../events')) {
           reason: `Load error: ${error.message}`,
           type: 'load_error'
         });
+        console.error(`[Event Loader] Failed to load file ${fullPath}:`, error.message);
+        if (DEBUG) {
+          console.error(`[DEBUG] Stack: ${error.stack}`);
+        }
       }
     }
 
@@ -214,6 +291,14 @@ async function loadEvents(client, dirPath = path.join(__dirname, '../events')) {
     console.log(`   • Status: ${malformedEvents.length === 0 ? '✅ VALID' : '❌ HAS ISSUES'}`);
     console.log();
 
+    if (DEBUG) {
+      console.log(`[DEBUG] Event load report:`, {
+        loaded: loadedEvents.length,
+        errors: malformedEvents.length,
+        events: loadedEvents.map(e => ({ name: e.name, once: e.once }))
+      });
+    }
+
     return {
       totalLoaded: loadedEvents.length,
       totalErrors: malformedEvents.length,
@@ -223,6 +308,9 @@ async function loadEvents(client, dirPath = path.join(__dirname, '../events')) {
     };
   } catch (error) {
     console.error('[Event Loader] Fatal error:', error);
+    if (DEBUG) {
+      console.error(`[DEBUG] Stack: ${error.stack}`);
+    }
     throw error;
   }
 }

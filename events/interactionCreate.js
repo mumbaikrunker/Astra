@@ -2,6 +2,8 @@ const { handleButton: handleReadyButton, getSession } = require('../utils/readyM
 const { handleReportButton } = require('../utils/reportManager');
 const { handleMatchInfoButton } = require('../utils/matchInfoManager');
 
+const DEBUG = process.env.DEBUG === 'true';
+
 /**
  * Handle all Discord interactions: slash commands, buttons, and other interactions
  * Features:
@@ -16,8 +18,16 @@ module.exports = {
   once: false,
   async execute(interaction, client) {
     try {
+      if (DEBUG) {
+        console.log(`[DEBUG] [Interaction] Type: ${interaction.type}, User: ${interaction.user.tag}`);
+      }
+
       // ===== BUTTON INTERACTIONS =====
       if (interaction.isButton()) {
+        if (DEBUG) {
+          console.log(`[DEBUG] Button interaction received: ${interaction.customId}`);
+        }
+
         try {
           if (interaction.customId.startsWith('report_')) {
             return await handleReportButton(interaction);
@@ -37,6 +47,10 @@ module.exports = {
             stack: error.stack,
             timestamp: new Date().toISOString()
           });
+
+          if (DEBUG) {
+            console.error(`[DEBUG] Button error details:`, error);
+          }
 
           try {
             if (interaction.replied) {
@@ -62,6 +76,9 @@ module.exports = {
 
       // ===== SLASH COMMAND INTERACTIONS =====
       if (!interaction.isChatInputCommand()) {
+        if (DEBUG) {
+          console.log(`[DEBUG] Ignoring non-command interaction: ${interaction.type}`);
+        }
         return;
       }
 
@@ -76,6 +93,11 @@ module.exports = {
         timestamp: new Date().toISOString()
       });
 
+      if (DEBUG) {
+        console.log(`[DEBUG] Raw command name: "${interaction.commandName}"`);
+        console.log(`[DEBUG] Type: ${typeof interaction.commandName}`);
+      }
+
       // Validate and normalize command name
       let commandName;
       try {
@@ -89,6 +111,10 @@ module.exports = {
         if (!commandName) {
           throw new Error('Command name is empty after normalization');
         }
+
+        if (DEBUG) {
+          console.log(`[DEBUG] Normalized command name: "${commandName}"`);
+        }
       } catch (parseError) {
         console.error('[Command Handler] ❌ Failed to parse command name:', {
           error: parseError.message,
@@ -96,6 +122,10 @@ module.exports = {
           type: typeof interaction.commandName,
           userId: interaction.user.id
         });
+
+        if (DEBUG) {
+          console.error(`[DEBUG] Parse error details:`, parseError);
+        }
 
         try {
           await interaction.reply({
@@ -111,6 +141,12 @@ module.exports = {
       // ----- COMMAND LOOKUP -----
       const command = client.commands.get(commandName);
       const startTime = Date.now();
+
+      if (DEBUG) {
+        console.log(`[DEBUG] Looking up command: "${commandName}"`);
+        console.log(`[DEBUG] Command found: ${!!command}`);
+        console.log(`[DEBUG] Available commands:`, Array.from(client.commands.keys()));
+      }
 
       // Command not found
       if (!command) {
@@ -129,6 +165,11 @@ module.exports = {
           console.warn('[Command Handler] 📋 Available commands:', availableCommands.join(', '));
         } else {
           console.warn('[Command Handler] ⚠️  No commands loaded! Check handler.js for errors.');
+        }
+
+        if (DEBUG) {
+          console.log(`[DEBUG] Command not found. Available count: ${client.commands.size}`);
+          console.log(`[DEBUG] Available: ${JSON.stringify(availableCommands)}`);
         }
 
         try {
@@ -156,6 +197,15 @@ module.exports = {
         timestamp: new Date().toISOString()
       });
 
+      if (DEBUG) {
+        console.log(`[DEBUG] Executing command: ${commandName}`);
+        console.log(`[DEBUG] Command object:`, {
+          hasData: !!command.data,
+          hasExecute: !!command.execute,
+          isExecuteFunction: typeof command.execute === 'function'
+        });
+      }
+
       // ----- COMMAND EXECUTION -----
       try {
         // Execute the command in isolation
@@ -169,6 +219,10 @@ module.exports = {
           executionTimeMs: executionTime,
           timestamp: new Date().toISOString()
         });
+
+        if (DEBUG) {
+          console.log(`[DEBUG] Command execution completed in ${executionTime}ms`);
+        }
       } catch (executionError) {
         // ----- EXECUTION ERROR HANDLING -----
         const executionTime = Date.now() - startTime;
@@ -187,6 +241,15 @@ module.exports = {
           timestamp: new Date().toISOString()
         });
 
+        if (DEBUG) {
+          console.error(`[DEBUG] Full error object:`, {
+            message: executionError.message,
+            name: executionError.name,
+            code: executionError.code,
+            stack: executionError.stack
+          });
+        }
+
         // Send error response to user
         const errorMessage = '❌ An error occurred while executing this command.';
 
@@ -197,17 +260,29 @@ module.exports = {
               content: errorMessage,
               ephemeral: true
             });
+
+            if (DEBUG) {
+              console.log(`[DEBUG] Sent followUp error message`);
+            }
           } else if (interaction.deferred) {
             // Already deferred - edit the deferred response
             await interaction.editReply({
               content: errorMessage
             });
+
+            if (DEBUG) {
+              console.log(`[DEBUG] Edited deferred error message`);
+            }
           } else {
             // No prior response - send new reply
             await interaction.reply({
               content: errorMessage,
               ephemeral: true
             });
+
+            if (DEBUG) {
+              console.log(`[DEBUG] Sent new reply error message`);
+            }
           }
 
           console.log('[Command Handler] 📤 Error reply sent to user:', {
@@ -222,6 +297,10 @@ module.exports = {
             replyError: replyError.message,
             replyErrorCode: replyError.code
           });
+
+          if (DEBUG) {
+            console.error(`[DEBUG] Reply error details:`, replyError);
+          }
         }
       }
     } catch (unexpectedError) {
@@ -232,6 +311,10 @@ module.exports = {
         errorStack: unexpectedError.stack,
         timestamp: new Date().toISOString()
       });
+
+      if (DEBUG) {
+        console.error(`[DEBUG] Unexpected error details:`, unexpectedError);
+      }
 
       // Attempt to notify user if possible
       try {
