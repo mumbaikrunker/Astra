@@ -1,251 +1,228 @@
-const fs = require('fs').promises;
 const path = require('path');
 const { REST, Routes } = require('discord.js');
 const { clientId } = require('./configs/config');
+const commandRegistry = require('./systems/commandRegistry');
+const { loadCommands } = require('./utils/handler');
+const { Collection } = require('discord.js');
 
 /**
- * Recursively collect all commands from the commands directory
- * Returns detailed command metadata for validation and comparison
+ * Safe Command Deployment System
+ *
+ * Features:
+ * - Centralized registry-based validation
+ * - Comprehensive pre-deployment checks
+ * - Detailed sync comparison with Discord
+ * - Safety guardrails before pushing to production
+ * - Clear reporting of changes and status
  */
-async function collectCommands(dirPath = path.join(__dirname, 'commands')) {
-  const entries = await fs.readdir(dirPath, { withFileTypes: true });
-  const commands = [];
-  const commandMetadata = [];
-  const malformed = [];
-
-  async function recursiveCollect(currentPath) {
-    try {
-      const dirEntries = await fs.readdir(currentPath, { withFileTypes: true });
-
-      for (const entry of dirEntries) {
-        const fullPath = path.join(currentPath, entry.name);
-
-        if (entry.isDirectory()) {
-          await recursiveCollect(fullPath);
-          continue;
-        }
-
-        if (!entry.name.endsWith('.js')) {
-          continue;
-        }
-
-        try {
-          // Clear require cache to ensure fresh load
-          delete require.cache[require.resolve(fullPath)];
-          const command = require(fullPath);
-
-          // Validate command structure
-          if (!command.data) {
-            malformed.push({
-              file: fullPath,
-              reason: 'Missing "data" property (SlashCommandBuilder)'
-            });
-            continue;
-          }
-
-          if (!command.data.name || typeof command.data.name !== 'string') {
-            malformed.push({
-              file: fullPath,
-              reason: `Invalid command name: ${command.data.name} (must be a non-empty string)`
-            });
-            continue;
-          }
-
-          if (!command.execute || typeof command.execute !== 'function') {
-            malformed.push({
-              file: fullPath,
-              reason: 'Missing or invalid "execute" function'
-            });
-            continue;
-          }
-
-          if (!command.data.toJSON || typeof command.data.toJSON !== 'function') {
-            malformed.push({
-              file: fullPath,
-              reason: 'Missing toJSON() method on command data'
-            });
-            continue;
-          }
-
-          // Normalize command name
-          const commandName = command.data.name.toLowerCase().trim();
-
-          // Collect command for deployment
-          try {
-            const jsonData = command.data.toJSON();
-            commands.push(jsonData);
-
-            commandMetadata.push({
-              file: path.relative(path.join(__dirname, 'commands'), fullPath),
-              name: commandName,
-              description: command.data.description || 'No description',
-              subcommands: jsonData.options?.filter(opt => opt.type === 1 || opt.type === 2) || [],
-              options: jsonData.options?.filter(opt => opt.type !== 1 && opt.type !== 2) || []
-            });
-          } catch (toJsonError) {
-            malformed.push({
-              file: fullPath,
-              reason: `toJSON() failed: ${toJsonError.message}`
-            });
-          }
-
-        } catch (error) {
-          malformed.push({
-            file: fullPath,
-            reason: `Load error: ${error.message}`
-          });
-        }
-      }
-    } catch (error) {
-      console.error(`[Deploy] Error reading directory ${currentPath}:`, error);
-    }
-  }
-
-  await recursiveCollect(dirPath);
-
-  return { commands, commandMetadata, malformed };
-}
 
 /**
- * Compare deployed commands with collected commands
- * Detects new, removed, and mismatched commands
+ * Deploy commands to Discord with comprehensive validation
  */
-function compareCommands(deployedCommands, collectedCommands) {
-  const deployedNames = new Set(deployedCommands.map(cmd => cmd.name.toLowerCase()));
-  const collectedNames = new Set(collectedCommands.map(cmd => cmd.name.toLowerCase()));
+async function deployCommandsToDiscord() {
+  const startTime = Date.now();
 
-  const newCommands = collectedCommands.filter(cmd => !deployedNames.has(cmd.name.toLowerCase()));
-  const removedCommands = deployedCommands.filter(cmd => !collectedNames.has(cmd.name.toLowerCase()));
-  const commonCommands = collectedCommands.filter(cmd => deployedNames.has(cmd.name.toLowerCase()));
-
-  return { newCommands, removedCommands, commonCommands };
-}
-
-/**
- * Main deployment function with comprehensive logging and validation
- */
-(async () => {
-  console.log('\n[Deploy] Starting Discord slash command deployment...\n');
+  console.log(`\n${'='.repeat(80)}`);
+  console.log(`[DEPLOY SYSTEM] Starting Deployment Process`);
+  console.log(`${'='.repeat(80)}\n`);
 
   try {
-    // Verify environment
+    // ===== ENVIRONMENT VALIDATION =====
+    console.log(`[DEPLOY] Step 1: Validating Environment...`);
     if (!process.env.DISCORD_TOKEN) {
       throw new Error('DISCORD_TOKEN environment variable is not set');
     }
-
-    // Collect all commands
-    console.log('[Deploy] Collecting commands from file system...');
-    const { commands, commandMetadata, malformed } = await collectCommands();
-
-    // Log collected commands
-    console.log(`\n[Deploy] Collection Results:`);
-    console.log(`  ✅ Valid: ${commands.length} commands`);
-
-    if (commands.length > 0) {
-      console.log(`\n[Deploy] Commands to Deploy:`);
-      commandMetadata.forEach(cmd => {
-        const options = cmd.options.length > 0 ? ` [${cmd.options.length} option${cmd.options.length > 1 ? 's' : ''}]` : '';
-        const subcommands = cmd.subcommands.length > 0 ? ` [${cmd.subcommands.length} subcommand${cmd.subcommands.length > 1 ? 's' : ''}]` : '';
-        console.log(`    • /${cmd.name}: ${cmd.description}${options}${subcommands}`);
-      });
+    if (!clientId) {
+      throw new Error('CLIENT_ID is not configured');
     }
+    console.log(`  ✅ Environment valid`);
+    console.log(`  ✅ CLIENT_ID: ${clientId}`);
+    console.log();
 
-    // Log malformed commands
-    if (malformed.length > 0) {
-      console.log(`\n[Deploy] ❌ Malformed (${malformed.length} commands skipped):`);
-      malformed.forEach(cmd => {
-        console.log(`    • ${cmd.file}`);
-        console.log(`      Reason: ${cmd.reason}`);
-      });
+    // ===== LOAD & VALIDATE COMMANDS =====
+    console.log(`[DEPLOY] Step 2: Loading & Validating Commands...`);
+    const dummyClient = new (require('discord.js')).Client({
+      intents: [require('discord.js').GatewayIntentBits.Guilds]
+    });
+    dummyClient.commands = new Collection();
+
+    // Use the same loader as the bot
+    const loadReport = await loadCommands(dummyClient);
+
+    // Check load status
+    if (!loadReport.isValid) {
+      console.error(`\n❌ DEPLOYMENT BLOCKED: Command loading has errors`);
+      console.error(`   Cannot deploy with ${loadReport.totalErrors} malformed command(s)\n`);
+      process.exit(1);
     }
+    console.log(`  ✅ All commands valid for deployment\n`);
 
-    // Connect to Discord API
-    console.log(`\n[Deploy] Connecting to Discord API...`);
+    // ===== PREPARE DEPLOYMENT DATA =====
+    console.log(`[DEPLOY] Step 3: Preparing Deployment Payload...`);
+    const commands = Array.from(commandRegistry.getAll().values())
+      .map(cmd => cmd.data.toJSON())
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    console.log(`  ✅ Payload prepared: ${commands.length} commands`);
+    console.log();
+
+    // ===== CONNECT TO DISCORD API =====
+    console.log(`[DEPLOY] Step 4: Connecting to Discord API...`);
     const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+    console.log(`  ✅ Connected\n`);
 
-    // Fetch current deployed commands
-    let currentDeployedCommands = [];
+    // ===== FETCH CURRENT STATE =====
+    console.log(`[DEPLOY] Step 5: Fetching Current Deployment State...`);
+    let currentDeployed = [];
     const deploymentScope = process.env.GUILD_ID
       ? `Guild ${process.env.GUILD_ID}`
       : 'Global (all guilds)';
 
-    console.log(`[Deploy] Fetching currently deployed commands (${deploymentScope})...`);
     try {
       if (process.env.GUILD_ID) {
-        currentDeployedCommands = await rest.get(
+        currentDeployed = await rest.get(
           Routes.applicationGuildCommands(clientId, process.env.GUILD_ID)
         );
       } else {
-        currentDeployedCommands = await rest.get(Routes.applicationCommands(clientId));
+        currentDeployed = await rest.get(Routes.applicationCommands(clientId));
       }
-      console.log(`[Deploy] Currently deployed: ${currentDeployedCommands.length} commands`);
+      console.log(`  ✅ Currently deployed: ${currentDeployed.length} commands`);
+      console.log(`  📡 Scope: ${deploymentScope}`);
     } catch (error) {
-      console.warn(`[Deploy] Could not fetch current commands (may be first deployment): ${error.message}`);
+      console.log(`  ℹ️  No current deployment found (first deployment): ${error.message}`);
+      currentDeployed = [];
     }
+    console.log();
 
-    // Compare and detect changes
-    if (currentDeployedCommands.length > 0) {
-      console.log(`\n[Deploy] Comparing deployed vs. collected commands...`);
-      const { newCommands, removedCommands, commonCommands } = compareCommands(
-        currentDeployedCommands,
-        commandMetadata
-      );
+    // ===== SYNC COMPARISON =====
+    console.log(`[DEPLOY] Step 6: Comparing Local vs. Discord...`);
+    const syncResult = commandRegistry.compareWithDiscord(currentDeployed);
 
-      if (newCommands.length > 0) {
-        console.log(`  🆕 New Commands (${newCommands.length}):`);
-        newCommands.forEach(cmd => {
-          console.log(`     + /${cmd.name}`);
-        });
-      }
+    console.log(`  📊 Sync Status:`);
+    console.log(`     • Local Commands: ${syncResult.totalLocal}`);
+    console.log(`     • Discord Commands: ${syncResult.totalDiscord}`);
+    console.log(`     • Synced: ${syncResult.synced}`);
 
-      if (removedCommands.length > 0) {
-        console.log(`  🗑️  Removed Commands (${removedCommands.length}):`);
-        removedCommands.forEach(cmd => {
-          console.log(`     - /${cmd.name}`);
-        });
-      }
-
-      if (commonCommands.length > 0 && newCommands.length === 0 && removedCommands.length === 0) {
-        console.log(`  ✅ No Changes (${commonCommands.length} commands synced)`);
-      } else if (commonCommands.length > 0) {
-        console.log(`  ✅ Unchanged (${commonCommands.length} commands)`);
-      }
-    }
-
-    // Deploy commands
-    console.log(`\n[Deploy] Deploying ${commands.length} commands to Discord...`);
-    if (process.env.GUILD_ID) {
-      await rest.put(Routes.applicationGuildCommands(clientId, process.env.GUILD_ID), {
-        body: commands
+    if (syncResult.localOnly.length > 0) {
+      console.log(`     • 🆕 Local Only (${syncResult.localOnly.length}):`);
+      syncResult.details.localOnly.forEach(cmd => {
+        console.log(`        + /${cmd}`);
       });
+    }
+
+    if (syncResult.discordOnly.length > 0) {
+      console.log(`     • 🗑️  Discord Only (${syncResult.discordOnly.length}):`);
+      syncResult.details.discordOnly.forEach(cmd => {
+        console.log(`        - /${cmd}`);
+      });
+    }
+
+    if (syncResult.isInSync) {
+      console.log(`     • ✅ Perfect Sync: No changes needed`);
+    } else {
+      console.log(`     • ⚠️  Out of Sync: Changes detected`);
+    }
+    console.log();
+
+    // ===== DEPLOYMENT CONFIRMATION =====
+    console.log(`[DEPLOY] Step 7: Pre-Deployment Checks...`);
+
+    // Check for malformed commands
+    const registryStats = commandRegistry.getStats();
+    if (registryStats.totalErrors > 0) {
+      console.error(`\n❌ DEPLOYMENT BLOCKED: Registry has errors`);
+      console.error(`   Cannot deploy with active validation errors\n`);
+      process.exit(1);
+    }
+
+    // Check for critical mismatches
+    if (syncResult.localOnly.length > 20 && syncResult.discordOnly.length > 0) {
+      console.warn(`\n⚠️  WARNING: Major sync mismatch detected`);
+      console.warn(`   Adding ${syncResult.localOnly.length} commands while removing ${syncResult.discordOnly.length}`);
+      console.warn(`   This suggests a significant structural change\n`);
+    }
+
+    console.log(`  ✅ All checks passed - ready to deploy\n`);
+
+    // ===== EXECUTE DEPLOYMENT =====
+    console.log(`[DEPLOY] Step 8: Deploying to Discord...`);
+    console.log(`  🚀 Pushing ${commands.length} commands...`);
+
+    if (process.env.GUILD_ID) {
+      await rest.put(
+        Routes.applicationGuildCommands(clientId, process.env.GUILD_ID),
+        { body: commands }
+      );
     } else {
       await rest.put(Routes.applicationCommands(clientId), { body: commands });
     }
 
-    console.log(`\n✅ [Deploy] SUCCESS! All ${commands.length} commands deployed.`);
-    console.log(`[Deploy] Scope: ${deploymentScope}`);
-    console.log(`[Deploy] Commands are now available in Discord.\n`);
+    console.log(`  ✅ Deployment successful!\n`);
 
-    process.exit(0);
+    // ===== FINAL SUMMARY =====
+    const deploymentTime = Date.now() - startTime;
+    console.log(`${'='.repeat(80)}`);
+    console.log(`✅ [DEPLOY] DEPLOYMENT COMPLETE`);
+    console.log(`${'='.repeat(80)}\n`);
 
-  } catch (error) {
-    console.error(`\n❌ [Deploy] DEPLOYMENT FAILED`);
-    console.error(`   Error: ${error.message}`);
+    console.log(`📊 Final Status:`);
+    console.log(`   • Commands Deployed: ${commands.length}`);
+    console.log(`   • Scope: ${deploymentScope}`);
+    console.log(`   • Sync Status: ${syncResult.isInSync ? '✅ In Sync' : '⚠️  Out of Sync (will be corrected)'}`);
+    console.log(`   • Deployment Time: ${deploymentTime}ms`);
+    console.log();
 
-    if (error.code === 'ENOENT') {
-      console.error('   (File not found - check command directory paths)');
-    } else if (error.status === 401) {
-      console.error('   (Unauthorized - check DISCORD_TOKEN and CLIENT_ID)');
-    } else if (error.status === 403) {
-      console.error('   (Forbidden - bot may not have permission to register commands)');
+    if (!syncResult.isInSync) {
+      console.log(`📋 Changes Made:`);
+      if (syncResult.localOnly.length > 0) {
+        console.log(`   • Added: ${syncResult.localOnly.length} command(s)`);
+      }
+      if (syncResult.discordOnly.length > 0) {
+        console.log(`   • Removed: ${syncResult.discordOnly.length} command(s)`);
+      }
+      console.log();
     }
 
-    console.error(`\n[Deploy] Debug Info:`);
-    console.error(`   DISCORD_TOKEN set: ${!!process.env.DISCORD_TOKEN}`);
-    console.error(`   CLIENT_ID: ${clientId}`);
-    console.error(`   GUILD_ID: ${process.env.GUILD_ID || '(global)'}`);
-    console.error(`   Stack: ${error.stack}\n`);
+    console.log(`ℹ️  Next: Start the bot with \`node index.js\` to verify deployment\n`);
+
+    process.exit(0);
+  } catch (error) {
+    // ===== ERROR HANDLING =====
+    console.error(`\n${'='.repeat(80)}`);
+    console.error(`❌ [DEPLOY] DEPLOYMENT FAILED`);
+    console.error(`${'='.repeat(80)}\n`);
+
+    console.error(`❌ Error: ${error.message}\n`);
+
+    // Provide specific help
+    if (error.code === 'ENOENT') {
+      console.error(`🔧 Troubleshooting:`);
+      console.error(`   • Command directory not found`);
+      console.error(`   • Check that "commands" directory exists\n`);
+    } else if (error.status === 401) {
+      console.error(`🔧 Troubleshooting:`);
+      console.error(`   • Invalid or expired DISCORD_TOKEN`);
+      console.error(`   • Verify DISCORD_TOKEN in .env file\n`);
+    } else if (error.status === 403) {
+      console.error(`🔧 Troubleshooting:`);
+      console.error(`   • Bot lacks permission to register commands`);
+      console.error(`   • Verify bot has "applications.commands" scope\n`);
+    } else if (error.message.includes('malformed')) {
+      console.error(`🔧 Troubleshooting:`);
+      console.error(`   • One or more commands are malformed`);
+      console.error(`   • Check command files for missing data or execute\n`);
+    }
+
+    console.error(`📋 Debug Information:`);
+    console.error(`   • DISCORD_TOKEN: ${process.env.DISCORD_TOKEN ? '✅ Set' : '❌ Missing'}`);
+    console.error(`   • CLIENT_ID: ${clientId || '❌ Missing'}`);
+    console.error(`   • GUILD_ID: ${process.env.GUILD_ID || 'Not set (global scope)'}`);
+    console.error(`   • Stack: ${error.stack}\n`);
 
     process.exit(1);
   }
-})();
+}
+
+// Run deployment
+deployCommandsToDiscord();
+

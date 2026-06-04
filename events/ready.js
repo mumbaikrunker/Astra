@@ -3,170 +3,160 @@ const { setClient: setQueueClient } = require('../utils/queueManager');
 const { Routes } = require('discord.js');
 
 /**
- * Comprehensive startup diagnostics and initialization
+ * Production-Ready Startup Dashboard
+ *
+ * Displays comprehensive system status using registry data
+ * Integrated validation, deployment checks, and initialization
  */
 module.exports = {
   name: 'ready',
   once: true,
   async execute(client) {
+    const startupTime = Date.now();
+
     console.log(`\n${'='.repeat(80)}`);
-    console.log(`✅ BOT CONNECTED: Logged in as ${client.user.tag}`);
+    console.log(`✅ [READY] Bot Connected: ${client.user.tag}`);
     console.log(`${'='.repeat(80)}\n`);
 
-    // ===== COMMAND DIAGNOSTICS =====
-    console.log(`[STARTUP] Loading Command Diagnostics...\n`);
+    try {
+      // Get registry data
+      const registry = client.registry;
+      const registryStats = registry.getStats();
+      const commandNames = registry.getNames();
 
-    const localCommands = client.commands;
-    const commandNames = Array.from(localCommands.keys()).sort();
-    const totalCommands = localCommands.size;
+      // ===== COMMAND STATUS DASHBOARD =====
+      console.log(`[COMMANDS] Registry Status:\n`);
 
-    console.log(`[COMMANDS] Local Commands Summary:`);
-    console.log(`  📊 Total Loaded: ${totalCommands}\n`);
+      const statusIcon = registryStats.totalErrors === 0 ? '✅' : '⚠️';
+      console.log(`  ${statusIcon} Loaded: ${registryStats.totalCommands} commands`);
 
-    if (totalCommands > 0) {
-      console.log(`[COMMANDS] Loaded Command Names:`);
-      commandNames.forEach((cmd, index) => {
-        console.log(`  ${String(index + 1).padStart(2, ' ')}. /${cmd}`);
-      });
-      console.log();
-    } else {
-      console.warn(`  ⚠️  WARNING: No commands loaded! Check handler.js for errors.\n`);
-    }
+      if (registryStats.totalCommands > 0) {
+        console.log(`\n  📋 Command List:`);
+        commandNames.forEach((cmd, idx) => {
+          const num = String(idx + 1).padStart(2, ' ');
+          console.log(`     ${num}. /${cmd}`);
+        });
+      }
 
-    // ===== DETECT DUPLICATES =====
-    const uniqueNames = new Set(commandNames);
-    if (commandNames.length !== uniqueNames.size) {
-      console.warn(`[COMMANDS] ⚠️  DUPLICATE COMMANDS DETECTED:`);
-      const counted = new Map();
-      commandNames.forEach(name => {
-        counted.set(name, (counted.get(name) || 0) + 1);
-      });
-      counted.forEach((count, name) => {
-        if (count > 1) {
-          console.warn(`  • /${name} (loaded ${count} times)`);
+      // Display validation results
+      if (registryStats.totalErrors > 0) {
+        console.log(`\n  ⚠️  Validation Issues Found:\n`);
+        const errors = registry.getErrors();
+        errors.slice(0, 5).forEach((error, idx) => {
+          console.log(`     ${idx + 1}. ${error.reason}`);
+          console.log(`        File: ${error.file}\n`);
+        });
+
+        if (errors.length > 5) {
+          console.log(`     ... and ${errors.length - 5} more issues\n`);
         }
-      });
+      }
       console.log();
-    }
 
-    // ===== VALIDATE COMMAND STRUCTURE =====
-    console.log(`[COMMANDS] Validating Command Structure...`);
-    let validCount = 0;
-    const invalid = [];
+      // ===== DISCORD SYNC CHECK =====
+      console.log(`[DISCORD] Deployment Status:\n`);
 
-    localCommands.forEach((command, name) => {
+      let discordCommands = [];
+      let deploymentScope = 'Unknown';
+
       try {
-        if (!command.data) {
-          invalid.push({ name, reason: 'missing data' });
-          return;
+        const clientId = client.user.id;
+        const guildId = process.env.GUILD_ID;
+
+        if (guildId) {
+          discordCommands = await client.rest.get(
+            Routes.applicationGuildCommands(clientId, guildId)
+          );
+          deploymentScope = `Guild (${guildId})`;
+        } else {
+          discordCommands = await client.rest.get(Routes.applicationCommands(clientId));
+          deploymentScope = `Global (all guilds)`;
         }
-        if (!command.execute || typeof command.execute !== 'function') {
-          invalid.push({ name, reason: 'missing execute function' });
-          return;
+
+        console.log(`  📡 Scope: ${deploymentScope}`);
+        console.log(`  ✅ Deployed: ${discordCommands.length} commands\n`);
+
+        // Compare with registry
+        const syncResult = registry.compareWithDiscord(discordCommands);
+
+        console.log(`  [SYNC CHECK]:`);
+        console.log(`     • Local: ${syncResult.totalLocal}`);
+        console.log(`     • Discord: ${syncResult.totalDiscord}`);
+        console.log(`     • Synced: ${syncResult.synced}`);
+
+        if (syncResult.isInSync) {
+          console.log(`     • Status: ✅ PERFECT SYNC\n`);
+        } else {
+          console.log(`     • Status: ⚠️  OUT OF SYNC\n`);
+
+          if (syncResult.localOnly.length > 0) {
+            console.log(`  🆕 New Locally (${syncResult.localOnly.length}):`);
+            syncResult.details.localOnly.slice(0, 3).forEach(cmd => {
+              console.log(`     + /${cmd}`);
+            });
+            if (syncResult.localOnly.length > 3) {
+              console.log(`     ... and ${syncResult.localOnly.length - 3} more`);
+            }
+            console.log(`     💡 Run: node deploy-commands.js\n`);
+          }
+
+          if (syncResult.discordOnly.length > 0) {
+            console.log(`  🗑️  Only on Discord (${syncResult.discordOnly.length}):`);
+            syncResult.details.discordOnly.slice(0, 3).forEach(cmd => {
+              console.log(`     - /${cmd}`);
+            });
+            if (syncResult.discordOnly.length > 3) {
+              console.log(`     ... and ${syncResult.discordOnly.length - 3} more`);
+            }
+            console.log(`     💡 Run: node deploy-commands.js\n`);
+          }
         }
-        validCount++;
       } catch (error) {
-        invalid.push({ name, reason: error.message });
+        console.log(`  ℹ️  Could not check Discord: ${error.message}`);
+        console.log(`     (First deployment? Run: node deploy-commands.js)\n`);
       }
-    });
 
-    console.log(`  ✅ Valid: ${validCount}/${totalCommands}`);
+      // ===== INITIALIZE SYSTEMS =====
+      console.log(`[STARTUP] Initializing Systems...\n`);
+      try {
+        setReadyClient(client);
+        console.log(`  ✅ Ready Manager initialized`);
 
-    if (invalid.length > 0) {
-      console.log(`  ❌ Invalid (${invalid.length}):`);
-      invalid.forEach(cmd => {
-        console.log(`     • /${cmd.name}: ${cmd.reason}`);
-      });
-    }
-    console.log();
+        setQueueClient(client);
+        console.log(`  ✅ Queue Manager initialized\n`);
+      } catch (err) {
+        console.error(`  ❌ Manager initialization error: ${err.message}\n`);
+      }
 
-    // ===== FETCH DISCORD DEPLOYED COMMANDS =====
-    console.log(`[DISCORD] Checking Deployed Commands...`);
-    let discordCommands = [];
+      // ===== FINAL SUMMARY =====
+      const readyTime = Date.now() - startupTime;
 
-    try {
-      const clientId = client.user.id;
-      const guildId = process.env.GUILD_ID;
+      console.log(`${'='.repeat(80)}`);
+      console.log(`✅ [READY] BOT ONLINE AND READY`);
+      console.log(`${'='.repeat(80)}\n`);
 
-      if (guildId) {
-        discordCommands = await client.rest.get(
-          Routes.applicationGuildCommands(clientId, guildId)
-        );
-        console.log(`  📡 Scope: Guild (${guildId})`);
+      console.log(`📊 Startup Summary:`);
+      console.log(`   • Commands Loaded: ${registryStats.totalCommands}`);
+      console.log(`   • Validation: ${registryStats.totalErrors === 0 ? '✅ PASS' : `⚠️  ${registryStats.totalErrors} ISSUES`}`);
+      console.log(`   • Discord Deployed: ${discordCommands.length}`);
+      console.log(`   • Bot Account: ${client.user.tag}`);
+      console.log(`   • Startup Time: ${readyTime}ms`);
+      console.log(`   • Ready Time: ${new Date().toLocaleTimeString()}\n`);
+
+      if (discordCommands.length === 0) {
+        console.log(`⚠️  NOTE: No commands deployed to Discord yet.`);
+        console.log(`   Next: Run \`node deploy-commands.js\` to deploy commands\n`);
       } else {
-        discordCommands = await client.rest.get(Routes.applicationCommands(clientId));
-        console.log(`  📡 Scope: Global (all guilds)`);
+        console.log(`✅ All systems ready! Use /help in Discord to see commands\n`);
       }
 
-      console.log(`  ✅ Deployed: ${discordCommands.length} commands`);
+      console.log(`💡 Tips:`);
+      console.log(`   • Check bot status: client.user.tag`);
+      console.log(`   • View commands: client.commands or /help`);
+      console.log(`   • Resync commands: node deploy-commands.js\n`);
     } catch (error) {
-      console.warn(`  ⚠️  Could not fetch Discord commands: ${error.message}`);
-      console.log(`     (This is normal on first startup before deployment)`);
+      console.error(`\n❌ [READY] Startup dashboard error:`, error.message);
+      console.error(`   (Bot is online but dashboard failed)\n`);
     }
-    console.log();
-
-    // ===== COMPARE LOCAL vs DISCORD =====
-    if (discordCommands.length > 0) {
-      console.log(`[SYNC] Comparing Local vs. Discord Commands...`);
-
-      const localNames = new Set(commandNames);
-      const discordNames = new Set(discordCommands.map(cmd => cmd.name.toLowerCase()));
-
-      const localOnly = commandNames.filter(name => !discordNames.has(name));
-      const discordOnly = discordCommands
-        .map(cmd => cmd.name.toLowerCase())
-        .filter(name => !localNames.has(name));
-      const synced = commandNames.filter(name => discordNames.has(name));
-
-      if (localOnly.length === 0 && discordOnly.length === 0) {
-        console.log(`  ✅ Perfect Sync: All ${synced.length} commands match`);
-      } else {
-        if (synced.length > 0) {
-          console.log(`  ✅ Synced: ${synced.length} commands`);
-        }
-
-        if (localOnly.length > 0) {
-          console.log(`  🆕 Local Only (${localOnly.length}) - Need Deployment:`);
-          localOnly.forEach(cmd => {
-            console.log(`     + /${cmd}`);
-          });
-        }
-
-        if (discordOnly.length > 0) {
-          console.log(`  🗑️  Discord Only (${discordOnly.length}) - Removed Locally:`);
-          discordOnly.forEach(cmd => {
-            console.log(`     - /${cmd}`);
-          });
-          console.log(`     💡 Run \`node deploy-commands.js\` to sync`);
-        }
-      }
-      console.log();
-    }
-
-    // ===== INITIALIZE MANAGERS =====
-    console.log(`[STARTUP] Initializing Managers...`);
-    try {
-      setReadyClient(client);
-      setQueueClient(client);
-      console.log(`  ✅ Ready Manager initialized`);
-      console.log(`  ✅ Queue Manager initialized`);
-    } catch (err) {
-      console.error(`  ❌ Failed to initialize managers:`, err.message);
-    }
-    console.log();
-
-    // ===== STARTUP SUMMARY =====
-    console.log(`${'='.repeat(80)}`);
-    console.log(`✅ STARTUP COMPLETE`);
-    console.log(`${'='.repeat(80)}`);
-    console.log(`
-📊 Summary:
-   • Commands Loaded: ${validCount}/${totalCommands}
-   • Discord Deployed: ${discordCommands.length}
-   • Bot: ${client.user.tag}
-   • Guild ID: ${process.env.GUILD_ID || 'Global (all guilds)'}
-   • Ready to serve!
-    `);
-    console.log(`Type /help in Discord to see all commands\n`);
-  },
+  }
 };

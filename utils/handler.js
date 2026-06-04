@@ -1,18 +1,27 @@
 const fs = require('fs').promises;
 const path = require('path');
+const commandRegistry = require('../systems/commandRegistry');
 
+/**
+ * Load all commands from the commands directory
+ * Uses centralized command registry for validation and tracking
+ * Synchronizes loaded commands to client.commands Collection
+ *
+ * @param {Client} client - Discord.js client
+ * @param {string} dirPath - Directory to load commands from
+ * @returns {Promise<Object>} Load report with statistics
+ */
 async function loadCommands(client, dirPath = path.join(__dirname, '../commands')) {
+  const startTime = Date.now();
   const loadedCommands = [];
-  const skippedCommands = [];
-  const malformedCommands = [];
 
   async function recursiveLoad(currentPath) {
     try {
       const entries = await fs.readdir(currentPath, { withFileTypes: true });
-      
+
       for (const entry of entries) {
         const fullPath = path.join(currentPath, entry.name);
-        
+
         if (entry.isDirectory()) {
           await recursiveLoad(fullPath);
           continue;
@@ -27,120 +36,98 @@ async function loadCommands(client, dirPath = path.join(__dirname, '../commands'
           delete require.cache[require.resolve(fullPath)];
           const command = require(fullPath);
 
-          // Validate command structure
-          if (!command.data) {
-            malformedCommands.push({
-              file: fullPath,
-              reason: 'Missing "data" property (SlashCommandBuilder)'
+          // Register command with centralized registry
+          const result = commandRegistry.register(fullPath, command);
+
+          if (result.success) {
+            // Sync to client.commands Collection for backward compatibility
+            client.commands.set(result.command, command);
+            loadedCommands.push({
+              name: result.command,
+              description: command.data.description || 'No description',
+              file: path.relative(path.join(__dirname, '../commands'), fullPath)
             });
-            continue;
           }
-
-          if (!command.execute) {
-            malformedCommands.push({
-              file: fullPath,
-              reason: 'Missing "execute" function'
-            });
-            continue;
-          }
-
-          // Validate data.name exists and is a string
-          if (!command.data.name || typeof command.data.name !== 'string') {
-            malformedCommands.push({
-              file: fullPath,
-              reason: `Invalid command name: ${command.data.name} (must be a non-empty string)`
-            });
-            continue;
-          }
-
-          // Normalize command name (lowercase, trim)
-          const commandName = command.data.name.toLowerCase().trim();
-
-          // Check for duplicates
-          if (client.commands.has(commandName)) {
-            skippedCommands.push({
-              file: fullPath,
-              reason: `Duplicate command: "${commandName}" already loaded`
-            });
-            continue;
-          }
-
-          // Validate execute is a function
-          if (typeof command.execute !== 'function') {
-            malformedCommands.push({
-              file: fullPath,
-              reason: `"execute" is not a function (type: ${typeof command.execute})`
-            });
-            continue;
-          }
-
-          // Successfully load command
-          client.commands.set(commandName, command);
-          loadedCommands.push({
-            name: commandName,
-            description: command.data.description || 'No description',
-            file: path.relative(path.join(__dirname, '../commands'), fullPath)
-          });
-
+          // Errors are automatically tracked in registry
         } catch (error) {
-          malformedCommands.push({
-            file: fullPath,
-            reason: `Load error: ${error.message}`
-          });
+          console.error(`[Command Loader] Failed to load file ${fullPath}:`, error.message);
         }
       }
     } catch (error) {
-      console.error(`[Handler] Error reading directory ${currentPath}:`, error);
+      console.error(`[Command Loader] Error reading directory ${currentPath}:`, error);
     }
   }
 
   try {
     await recursiveLoad(dirPath);
+    const loadTime = Date.now() - startTime;
 
-    // Log results
-    console.log(`\n[Command Loader] Results:`);
-    console.log(`  ✅ Loaded: ${loadedCommands.length} commands`);
-    
+    // Get comprehensive report from registry
+    const report = commandRegistry.getLoadReport();
+
+    // Log detailed results
+    console.log(`\n${'='.repeat(80)}`);
+    console.log(`[COMMAND LOADER] Load Complete (${loadTime}ms)`);
+    console.log(`${'='.repeat(80)}\n`);
+
+    // Success summary
+    console.log(`✅ Successfully Loaded: ${report.totalLoaded} commands`);
     if (loadedCommands.length > 0) {
-      loadedCommands.forEach(cmd => {
-        console.log(`    - ${cmd.name}: ${cmd.description}`);
+      loadedCommands.forEach((cmd, idx) => {
+        console.log(`   ${String(idx + 1).padStart(2, ' ')}. /${cmd.name}: ${cmd.description}`);
+      });
+    }
+    console.log();
+
+    // Error summary
+    if (report.totalErrors > 0) {
+      console.log(`❌ Errors Found: ${report.totalErrors} issues\n`);
+
+      report.errors.forEach((error, idx) => {
+        console.log(`   Error ${idx + 1}: ${error.reason}`);
+        console.log(`   File: ${path.relative(process.cwd(), error.file)}`);
+        if (error.existingFile) {
+          console.log(`   Existing: ${path.relative(process.cwd(), error.existingFile)}`);
+        }
+        console.log();
       });
     }
 
-    if (malformedCommands.length > 0) {
-      console.log(`\n  ❌ Malformed (${malformedCommands.length} commands skipped):`);
-      malformedCommands.forEach(cmd => {
-        console.log(`    - ${cmd.file}`);
-        console.log(`      Reason: ${cmd.reason}`);
-      });
-    }
+    // Final summary
+    const { valid, duplicates, malformed } = report.summary;
+    console.log(`📊 Summary:`);
+    console.log(`   • Total Loaded: ${report.totalLoaded}`);
+    console.log(`   • Duplicates: ${duplicates}`);
+    console.log(`   • Malformed: ${malformed}`);
+    console.log(`   • Status: ${report.isValid ? '✅ VALID' : '❌ HAS ISSUES'}`);
+    console.log();
 
-    if (skippedCommands.length > 0) {
-      console.log(`\n  ⚠️  Skipped (${skippedCommands.length} commands):`);
-      skippedCommands.forEach(cmd => {
-        console.log(`    - ${cmd.file}`);
-        console.log(`      Reason: ${cmd.reason}`);
-      });
-    }
-
-    console.log(`\n  📊 Summary: ${loadedCommands.length} commands ready\n`);
-
+    return report;
   } catch (error) {
     console.error('[Command Loader] Fatal error:', error);
     throw error;
   }
 }
 
+/**
+ * Load all events from the events directory
+ * Events are registered with the client (once or on)
+ *
+ * @param {Client} client - Discord.js client
+ * @param {string} dirPath - Directory to load events from
+ * @returns {Promise<Object>} Load report with statistics
+ */
 async function loadEvents(client, dirPath = path.join(__dirname, '../events')) {
+  const startTime = Date.now();
   const loadedEvents = [];
   const malformedEvents = [];
 
   try {
     const entries = await fs.readdir(dirPath, { withFileTypes: true });
-    
+
     for (const entry of entries) {
       const fullPath = path.join(dirPath, entry.name);
-      
+
       if (entry.isDirectory()) {
         // Recursively load subdirectories
         await loadEvents(client, fullPath);
@@ -160,7 +147,8 @@ async function loadEvents(client, dirPath = path.join(__dirname, '../events')) {
         if (!event.name || typeof event.name !== 'string') {
           malformedEvents.push({
             file: fullPath,
-            reason: `Invalid event name: ${event.name} (must be a non-empty string)`
+            reason: `Invalid event name: ${event.name} (must be a non-empty string)`,
+            type: 'invalid_name'
           });
           continue;
         }
@@ -168,7 +156,8 @@ async function loadEvents(client, dirPath = path.join(__dirname, '../events')) {
         if (!event.execute || typeof event.execute !== 'function') {
           malformedEvents.push({
             file: fullPath,
-            reason: `Missing or invalid "execute" function`
+            reason: `Missing or invalid "execute" function`,
+            type: 'missing_execute'
           });
           continue;
         }
@@ -185,40 +174,57 @@ async function loadEvents(client, dirPath = path.join(__dirname, '../events')) {
           file: path.relative(path.join(__dirname, '../events'), fullPath),
           once: event.once || false
         });
-
       } catch (error) {
         malformedEvents.push({
           file: fullPath,
-          reason: `Load error: ${error.message}`
+          reason: `Load error: ${error.message}`,
+          type: 'load_error'
         });
       }
     }
 
+    const loadTime = Date.now() - startTime;
+
     // Log results
-    console.log(`\n[Event Loader] Results:`);
-    console.log(`  ✅ Loaded: ${loadedEvents.length} events`);
-    
+    console.log(`\n${'='.repeat(80)}`);
+    console.log(`[EVENT LOADER] Load Complete (${loadTime}ms)`);
+    console.log(`${'='.repeat(80)}\n`);
+
+    console.log(`✅ Successfully Loaded: ${loadedEvents.length} events`);
     if (loadedEvents.length > 0) {
-      loadedEvents.forEach(evt => {
+      loadedEvents.forEach((evt, idx) => {
         const type = evt.once ? '(once)' : '(on)';
-        console.log(`    - ${evt.name} ${type}`);
+        console.log(`   ${String(idx + 1).padStart(2, ' ')}. ${evt.name} ${type}`);
       });
     }
+    console.log();
 
     if (malformedEvents.length > 0) {
-      console.log(`\n  ❌ Malformed (${malformedEvents.length} events skipped):`);
-      malformedEvents.forEach(evt => {
-        console.log(`    - ${evt.file}`);
-        console.log(`      Reason: ${evt.reason}`);
+      console.log(`❌ Errors Found: ${malformedEvents.length} issues\n`);
+      malformedEvents.forEach((evt, idx) => {
+        console.log(`   Error ${idx + 1}: ${evt.reason}`);
+        console.log(`   File: ${path.relative(process.cwd(), evt.file)}`);
+        console.log();
       });
     }
 
-    console.log(`\n  📊 Summary: ${loadedEvents.length} events ready\n`);
+    console.log(`📊 Summary:`);
+    console.log(`   • Total Loaded: ${loadedEvents.length}`);
+    console.log(`   • Errors: ${malformedEvents.length}`);
+    console.log(`   • Status: ${malformedEvents.length === 0 ? '✅ VALID' : '❌ HAS ISSUES'}`);
+    console.log();
 
+    return {
+      totalLoaded: loadedEvents.length,
+      totalErrors: malformedEvents.length,
+      events: loadedEvents,
+      errors: malformedEvents,
+      isValid: malformedEvents.length === 0
+    };
   } catch (error) {
     console.error('[Event Loader] Fatal error:', error);
     throw error;
   }
 }
 
-module.exports = { loadCommands, loadEvents };
+module.exports = { loadCommands, loadEvents, commandRegistry };
