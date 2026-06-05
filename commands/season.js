@@ -6,10 +6,29 @@ module.exports = {
     .setName('season')
     .setDescription('Season management commands')
     .addSubcommand((sub) =>
-      sub.setName('create').setDescription('Create a new season').addStringOption((o) => o.setName('name').setRequired(true))
+      sub
+        .setName('create')
+        .setDescription('Create a new season')
+        .addStringOption((o) =>
+          o.setName('name').setDescription('Season name').setRequired(true)
+        )
     )
-    .addSubcommand((sub) => sub.setName('start').setDescription('Start an existing season').addIntegerOption((o) => o.setName('id').setRequired(true)))
-    .addSubcommand((sub) => sub.setName('end').setDescription('End a season').addIntegerOption((o) => o.setName('id').setRequired(true)))
+    .addSubcommand((sub) =>
+      sub
+        .setName('start')
+        .setDescription('Start an existing season')
+        .addIntegerOption((o) =>
+          o.setName('id').setDescription('Season ID').setRequired(true)
+        )
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName('end')
+        .setDescription('End a season')
+        .addIntegerOption((o) =>
+          o.setName('id').setDescription('Season ID').setRequired(true)
+        )
+    )
     .addSubcommand((sub) => sub.setName('list').setDescription('List seasons for this guild')),
 
   async execute(interaction) {

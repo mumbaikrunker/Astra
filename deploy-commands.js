@@ -1,6 +1,6 @@
 const path = require('path');
 const { REST, Routes } = require('discord.js');
-const { clientId } = require('./configs/config');
+const { getDiscordConfig } = require('./configs/config');
 const commandRegistry = require('./systems/commandRegistry');
 const { loadCommands } = require('./utils/handler');
 const { Collection } = require('discord.js');
@@ -31,12 +31,7 @@ async function deployCommandsToDiscord() {
   try {
     // ===== ENVIRONMENT VALIDATION =====
     console.log(`[DEPLOY] Step 1: Validating Environment...`);
-    if (!process.env.DISCORD_TOKEN) {
-      throw new Error('DISCORD_TOKEN environment variable is not set');
-    }
-    if (!clientId) {
-      throw new Error('CLIENT_ID is not configured');
-    }
+    const { token, clientId } = getDiscordConfig();
     console.log(`  ✅ Environment valid`);
     console.log(`  ✅ CLIENT_ID: ${clientId}`);
     console.log();
@@ -70,7 +65,7 @@ async function deployCommandsToDiscord() {
 
     // ===== CONNECT TO DISCORD API =====
     console.log(`[DEPLOY] Step 4: Connecting to Discord API...`);
-    const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+    const rest = new REST({ version: '10' }).setToken(token);
     console.log(`  ✅ Connected\n`);
 
     // ===== FETCH CURRENT STATE =====
@@ -233,7 +228,7 @@ async function deployCommandsToDiscord() {
 
     console.error(`📋 Debug Information:`);
     console.error(`   • DISCORD_TOKEN: ${process.env.DISCORD_TOKEN ? '✅ Set' : '❌ Missing'}`);
-    console.error(`   • CLIENT_ID: ${clientId || '❌ Missing'}`);
+    console.error(`   • CLIENT_ID: ${process.env.CLIENT_ID || '❌ Missing'}`);
     console.error(`   • GUILD_ID: ${process.env.GUILD_ID || 'Not set (global scope)'}`);
     console.error(`   • Stack: ${error.stack}\n`);
 

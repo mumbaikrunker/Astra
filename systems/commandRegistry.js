@@ -129,6 +129,20 @@ class CommandRegistry {
       };
     }
 
+    try {
+      command.data.toJSON();
+    } catch (error) {
+      return {
+        valid: false,
+        error: {
+          file: filePath,
+          name: commandName,
+          reason: `Command data failed serialization: ${error.message}`,
+          type: 'invalid_builder'
+        }
+      };
+    }
+
     return {
       valid: true,
       name: commandName,

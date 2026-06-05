@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node index.js",
     "deploy": "node deploy-commands.js",
-    "db:init": "node database/init.js"
+    "db:init": "node database/init.js",
+    "validate": "node scripts/validate.js"
   },
   "dependencies": {
     "discord.js": "^14.14.0",

@@ -1,9 +1,10 @@
 const fs = require('fs').promises;
 const path = require('path');
 const { Pool } = require('pg');
-const { databaseUrl } = require('../configs/config');
+const { getDatabaseConfig } = require('../configs/config');
 
 async function main() {
+  const { databaseUrl } = getDatabaseConfig();
   const pool = new Pool({ connectionString: databaseUrl });
   const schemaPath = path.join(__dirname, 'schema.sql');
   const schema = await fs.readFile(schemaPath, 'utf8');

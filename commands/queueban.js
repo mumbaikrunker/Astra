@@ -24,7 +24,7 @@ module.exports = {
       return interaction.reply({ content: 'That user already has an active queue ban.', ephemeral: true });
     }
 
-    const row = await createPunishment({ guildId: interaction.guildId, userId: target.id, moderatorId: interaction.user.id, type: 'queueban', reason, lengthSeconds });
+    const row = await createPunishment({ guildId: interaction.guildId, userId: target.id, username: target.tag, moderatorId: interaction.user.id, type: 'queueban', reason, lengthSeconds });
 
     await logModeration(interaction.guild, interaction.client, { title: 'Queue Ban Issued', description: `${target.tag} was queue-banned by ${interaction.user.tag}`, fields: [{ name: 'Reason', value: reason, inline: false }] });
 

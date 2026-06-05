@@ -7,6 +7,7 @@ async function getTopPlayers(limit = 10) {
     ORDER BY rating DESC
     LIMIT $1
   `;
+
   const result = await query(sql, [limit]);
   return result.rows;
 }
@@ -15,14 +16,53 @@ async function getUserRank(discordId) {
   const sql = `
     SELECT rank, rating, wins, losses, username
     FROM (
-      SELECT discord_id, username, rating, wins, losses,
+      SELECT
+        discord_id,
+        username,
+        rating,
+        wins,
+        losses,
         RANK() OVER (ORDER BY rating DESC) AS rank
       FROM users
     ) ranked
     WHERE discord_id = $1
   `;
+
   const result = await query(sql, [discordId]);
   return result.rows[0] || null;
 }
 
-module.exports = { getTopPlayers, getUserRank };
+async function getUserProfile(discordId) {
+  const sql = `
+    SELECT
+      rank,
+      rating,
+      wins,
+      losses,
+      username,
+      winstreak,
+      created_at
+    FROM (
+      SELECT
+        discord_id,
+        username,
+        rating,
+        wins,
+        losses,
+        winstreak,
+        created_at,
+        RANK() OVER (ORDER BY rating DESC) AS rank
+      FROM users
+    ) ranked
+    WHERE discord_id = $1
+  `;
+
+  const result = await query(sql, [discordId]);
+  return result.rows[0] || null;
+}
+
+module.exports = {
+  getTopPlayers,
+  getUserRank,
+  getUserProfile,
+};

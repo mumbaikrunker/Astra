@@ -1,5 +1,5 @@
 const { Client, Collection, GatewayIntentBits } = require('discord.js');
-const { token } = require('./configs/config');
+const { getRuntimeConfig } = require('./configs/config');
 const { loadCommands, loadEvents, commandRegistry } = require('./utils/handler');
 const ErrorHandler = require('./utils/errorHandler');
 
@@ -78,8 +78,9 @@ client.commands = new Collection();
     // Initialize client with registry reference
     client.registry = commandRegistry;
 
-    // Attempt login
+    // Validate runtime configuration and attempt login
     console.log(`[BOT] Connecting to Discord...\n`);
+    const { token } = getRuntimeConfig();
     await client.login(token);
 
     // Setup graceful shutdown

@@ -29,7 +29,7 @@ module.exports = {
       return interaction.reply({ content: 'Failed to apply timeout. Check bot permissions.', ephemeral: true });
     }
 
-    const row = await createPunishment({ guildId: interaction.guildId, userId: target.id, moderatorId: interaction.user.id, type: 'timeout', reason, lengthSeconds });
+    const row = await createPunishment({ guildId: interaction.guildId, userId: target.id, username: target.tag, moderatorId: interaction.user.id, type: 'timeout', reason, lengthSeconds });
     await logModeration(interaction.guild, interaction.client, { title: 'Member Timed Out', description: `${target.tag} was timed out by ${interaction.user.tag} for ${minutes} minutes`, fields: [{ name: 'Reason', value: reason }] });
     return interaction.reply({ content: `Timed out ${target.tag} for ${minutes} minutes.`, ephemeral: false });
   },
