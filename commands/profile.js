@@ -3,32 +3,32 @@ const { ensureUser } = require('../systems/users/userService');
 const { getUserProfile } = require('../systems/ratings/leaderboardService');
 
 function getTier(rating) {
-if (rating >= 2200) return 'Master';
-if (rating >= 1900) return 'Diamond';
-if (rating >= 1600) return 'Platinum';
-if (rating >= 1400) return 'Gold';
-if (rating >= 1200) return 'Silver';
-return 'Bronze';
+  if (rating >= 2200) return 'Master';
+  if (rating >= 1900) return 'Diamond';
+  if (rating >= 1600) return 'Platinum';
+  if (rating >= 1400) return 'Gold';
+  if (rating >= 1200) return 'Silver';
+  return 'Bronze';
 }
 
 function getTierColor(rating) {
-if (rating >= 2200) return 0xe74c3c;
-if (rating >= 1900) return 0x9b59b6;
-if (rating >= 1600) return 0x3498db;
-if (rating >= 1400) return 0xf1c40f;
-if (rating >= 1200) return 0x95a5a6;
-return 0x7f8c8d;
+  if (rating >= 2200) return 0xe74c3c;
+  if (rating >= 1900) return 0x9b59b6;
+  if (rating >= 1600) return 0x3498db;
+  if (rating >= 1400) return 0xf1c40f;
+  if (rating >= 1200) return 0x95a5a6;
+  return 0x7f8c8d;
 }
 
 module.exports = {
-data: new SlashCommandBuilder()
-.setName('profile')
-.setDescription('View a player's competitive profile'),
+  data: new SlashCommandBuilder()
+    .setName('profile')
+    .setDescription('View a player's competitive profile'),
 
 async execute(interaction) {
-await ensureUser(
-interaction.user.id,
-interaction.user.username
+      await ensureUser(
+        interaction.user.id,
+      interaction.user.username
 );
 
 ```
@@ -72,7 +72,7 @@ const registeredDate =
 const embed = new EmbedBuilder()
   .setColor(getTierColor(userData.rating))
   .setAuthor({
-    name: `${interaction.user.username}`,
+    name: `${ interaction.user.username } `,
     iconURL: interaction.user.displayAvatarURL({
       dynamic: true
     })
@@ -89,53 +89,53 @@ const embed = new EmbedBuilder()
       name: 'PLAYER INFORMATION',
       value:
         [
-          `Username: ${interaction.user.username}`,
-          `Display Name: ${member?.displayName || interaction.user.username}`,
+          `Username: ${ interaction.user.username } `,
+          `Display Name: ${ member?.displayName || interaction.user.username } `,
           joinedServer
-            ? `Joined Server: <t:${joinedServer}:D>`
-            : null,
-          `Joined Discord: <t:${joinedDiscord}:D>`
-        ]
-          .filter(Boolean)
-          .join('\n'),
-      inline: false
+            ? `Joined Server: <t:${joinedServer}: D>`
+  : null,
+  `Joined Discord: <t:${joinedDiscord}:D>`
+  ]
+  .filter(Boolean)
+  .join('\n'),
+  inline: false
     },
-    {
-      name: 'COMPETITIVE STATISTICS',
-      value:
-        [
-          `Rank: #${userData.rank}`,
-          `Rating: ${userData.rating}`,
-          `Tier: ${tier}`,
-          `Current Streak: ${userData.winstreak || 0}`
-        ].join('\n'),
-      inline: false
+  {
+    name: 'COMPETITIVE STATISTICS',
+  value:
+  [
+  `Rank: #${userData.rank}`,
+  `Rating: ${userData.rating}`,
+  `Tier: ${tier}`,
+  `Current Streak: ${userData.winstreak || 0}`
+  ].join('\n'),
+  inline: false
     },
-    {
-      name: 'MATCH HISTORY',
-      value:
-        [
-          `Wins: ${userData.wins}`,
-          `Losses: ${userData.losses}`,
-          `Matches Played: ${totalGames}`,
-          `Win Rate: ${winRate}%`
-        ].join('\n'),
-      inline: false
+  {
+    name: 'MATCH HISTORY',
+  value:
+  [
+  `Wins: ${userData.wins}`,
+  `Losses: ${userData.losses}`,
+  `Matches Played: ${totalGames}`,
+  `Win Rate: ${winRate}%`
+  ].join('\n'),
+  inline: false
     },
-    {
-      name: 'ACCOUNT STATUS',
-      value:
-        [
-          'Queue Banned: No',
-          'Warnings: 0',
-          'Timeouts: 0',
-          registeredDate
-            ? `Registered: <t:${registeredDate}:D>`
-            : null
-        ]
-          .filter(Boolean)
-          .join('\n'),
-      inline: false
+  {
+    name: 'ACCOUNT STATUS',
+  value:
+  [
+  'Queue Banned: No',
+  'Warnings: 0',
+  'Timeouts: 0',
+  registeredDate
+  ? `Registered: <t:${registeredDate}:D>`
+  : null
+  ]
+  .filter(Boolean)
+  .join('\n'),
+  inline: false
     }
   )
   .setFooter({
@@ -143,10 +143,10 @@ const embed = new EmbedBuilder()
   })
   .setTimestamp();
 
-await interaction.reply({
-  embeds: [embed]
+  await interaction.reply({
+    embeds: [embed]
 });
-```
+  ```
 
 }
 };
