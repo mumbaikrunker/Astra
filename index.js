@@ -3,119 +3,118 @@ const { getRuntimeConfig } = require('./configs/config');
 const { loadCommands, loadEvents, commandRegistry } = require('./utils/handler');
 const ErrorHandler = require('./utils/errorHandler');
 
-/**
- * Bot Entry Point - Production Ready
- *
- * Features:
- * - Centralized command registry initialization
- * - Safe startup with error recovery
- * - Clean shutdown handling
- * - Global error handling system
- * - Debug mode support
- */
-
 const DEBUG = process.env.DEBUG === 'true';
 
-// Initialize global error handlers first
+// Initialize global error handlers immediately
 ErrorHandler.initialize();
 
 if (DEBUG) {
-  console.log('[DEBUG] Bot starting in DEBUG mode');
-  console.log(`[DEBUG] Timestamp: ${new Date().toISOString()}`);
-  console.log(`[DEBUG] Node version: ${process.version}`);
-  console.log(`[DEBUG] Environment:`, {
+  console.log('[DEBUG] Starting bot in DEBUG mode');
+  console.log('[DEBUG] Node:', process.version);
+  console.log('[DEBUG] Time:', new Date().toISOString());
+  console.log('[DEBUG] Env:', {
     DISCORD_TOKEN: !!process.env.DISCORD_TOKEN,
     CLIENT_ID: !!process.env.CLIENT_ID,
-    GUILD_ID: process.env.GUILD_ID || 'Not set (global)',
-    DEBUG: DEBUG
+    GUILD_ID: process.env.GUILD_ID || 'global'
   });
 }
 
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+// Proper intents (fixes most "commands not working" issues)
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildMembers
+  ]
+});
+
 client.commands = new Collection();
 
 /**
- * Main startup sequence
+ * Graceful shutdown handler
+ */
+function shutdown(signal) {
+  console.log(`\n[BOT] Received ${signal}, shutting down...`);
+  try {
+    client.destroy();
+  } catch (err) {
+    console.error('[BOT] Error during shutdown:', err.message);
+  }
+  process.exit(0);
+}
+
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+
+/**
+ * Main bot startup
  */
 (async () => {
   try {
-    console.log(`\n${'='.repeat(80)}`);
-    console.log(`🤖 [BOT] Starting Astra Discord Bot`);
-    console.log(`${'='.repeat(80)}\n`);
+    console.log('\n' + '='.repeat(60));
+    console.log('🤖 Astra Bot Starting...');
+    console.log('='.repeat(60) + '\n');
 
-    // Load commands using centralized registry
-    console.log(`[BOT] Loading command system...\n`);
+    // Load commands
+    console.log('[BOT] Loading commands...');
     const commandReport = await loadCommands(client);
 
-    if (!commandReport.isValid) {
-      console.warn(`\n⚠️  WARNING: Command loading completed with ${commandReport.totalErrors} error(s)`);
-      console.warn(`   The bot will continue but some commands may not work\n`);
+    if (!commandReport?.isValid) {
+      console.warn('[WARN] Some commands failed to load.');
     }
 
     if (DEBUG) {
-      console.log(`[DEBUG] Command registry state:`, commandRegistry.getStats());
+      console.log('[DEBUG] Commands loaded:', commandRegistry.getStats());
     }
 
     // Load events
-    console.log(`[BOT] Loading event system...\n`);
+    console.log('[BOT] Loading events...');
     const eventReport = await loadEvents(client);
 
-    if (!eventReport.isValid) {
-      console.warn(`\n⚠️  WARNING: Event loading completed with ${eventReport.totalErrors} error(s)\n`);
+    if (!eventReport?.isValid) {
+      console.warn('[WARN] Some events failed to load.');
     }
 
     if (DEBUG) {
-      console.log(`[DEBUG] Events loaded:`, eventReport.events.map(e => ({ name: e.name, once: e.once })));
+      console.log('[DEBUG] Events:', eventReport.events?.map(e => e.name));
     }
 
-    // Lock registry after loading
+    // Lock registry AFTER loading
     commandRegistry.lock();
-
-    if (DEBUG) {
-      console.log(`[DEBUG] Registry locked - no new commands can be registered`);
-    }
-
-    // Initialize client with registry reference
     client.registry = commandRegistry;
 
-    // Validate runtime configuration and attempt login
-    console.log(`[BOT] Connecting to Discord...\n`);
+    console.log('[BOT] Connecting to Discord...');
+
     const { token } = getRuntimeConfig();
+
+    if (!token) {
+      throw new Error('Missing DISCORD_TOKEN in environment variables');
+    }
+
     await client.login(token);
 
-    // Setup graceful shutdown
-    process.on('SIGINT', () => {
-      console.log(`\n[BOT] Received shutdown signal, logging out...`);
-      client.destroy();
-      process.exit(0);
-    });
-
-    process.on('SIGTERM', () => {
-      console.log(`\n[BOT] Received termination signal, logging out...`);
-      client.destroy();
-      process.exit(0);
-    });
+    console.log(`[BOT] Logged in as ${client.user.tag}`);
   } catch (error) {
-    console.error(`\n${'='.repeat(80)}`);
-    console.error(`❌ [BOT] STARTUP FAILED`);
-    console.error(`${'='.repeat(80)}\n`);
-    console.error(`Error: ${error.message}\n`);
+    console.error('\n' + '='.repeat(60));
+    console.error('❌ BOT FAILED TO START');
+    console.error('='.repeat(60));
+
+    console.error('Error:', error.message);
 
     if (DEBUG) {
-      console.error(`[DEBUG] Stack:`, error.stack);
+      console.error('Stack:', error.stack);
     }
 
     if (error.message.includes('token')) {
-      console.error(`🔧 Troubleshooting: Invalid or missing bot token`);
-      console.error(`   • Check DISCORD_TOKEN in .env file`);
-      console.error(`   • Verify token is valid and not revoked\n`);
-    } else if (error.message.includes('ENOENT')) {
-      console.error(`🔧 Troubleshooting: File system error`);
-      console.error(`   • Check that command/event directories exist`);
-      console.error(`   • Verify file permissions\n`);
+      console.error('\nFix: Check DISCORD_TOKEN in .env');
     }
 
-    console.error(`Stack: ${error.stack}\n`);
+    if (error.message.includes('Missing')) {
+      console.error('\nFix: One or more environment variables are missing');
+      console.error('Required: DISCORD_TOKEN, CLIENT_ID');
+    }
+
     process.exit(1);
   }
 })();

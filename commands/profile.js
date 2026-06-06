@@ -1,88 +1,88 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { ensureUser } = require('../systems/users/userService');
 const { getUserProfile } = require('../systems/ratings/leaderboardService');
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('profile')
-    .setDescription('Show detailed player statistics')
-    .addUserOption(option =>
-      option
-        .setName('user')
-        .setDescription('Player to view')
-        .setRequired(false)
-    ),
+    .setDescription('Show detailed player statistics'),
 
   async execute(interaction) {
-    const target =
-      interaction.options.getUser('user') || interaction.user;
+    await ensureUser(
+      interaction.user.id,
+      interaction.user.username
+    );
 
-    const profile = await getUserProfile(target.id);
+    const userData = await getUserProfile(interaction.user.id);
 
-    if (!profile) {
+    if (!userData) {
       return interaction.reply({
-        content: 'No player statistics were found.',
-        ephemeral: true,
+        content: 'No profile data found.',
+        ephemeral: true
       });
     }
 
-    const totalGames = profile.wins + profile.losses;
+    const totalGames = userData.wins + userData.losses;
 
     const winRate =
       totalGames > 0
-        ? ((profile.wins / totalGames) * 100).toFixed(1)
+        ? ((userData.wins / totalGames) * 100).toFixed(1)
         : '0.0';
 
+    const createdDate = new Date(userData.created_at);
+
     const embed = new EmbedBuilder()
-      .setTitle(`${profile.username}'s Profile`)
-      .setColor('Blue')
+      .setTitle(`📊 ${userData.username}'s Profile`)
+      .setColor(0x3498db)
       .addFields(
         {
-          name: 'Rank',
-          value: `#${profile.rank}`,
-          inline: true,
+          name: '🏆 Rating',
+          value: `${userData.rating}`,
+          inline: true
         },
         {
-          name: 'Rating',
-          value: `${profile.rating}`,
-          inline: true,
+          name: '📈 Rank',
+          value: `#${userData.rank}`,
+          inline: true
         },
         {
-          name: 'Win Rate',
+          name: '🔥 Winstreak',
+          value: `${userData.winstreak}`,
+          inline: true
+        },
+        {
+          name: '✅ Wins',
+          value: `${userData.wins}`,
+          inline: true
+        },
+        {
+          name: '❌ Losses',
+          value: `${userData.losses}`,
+          inline: true
+        },
+        {
+          name: '🎯 Win Rate',
           value: `${winRate}%`,
-          inline: true,
+          inline: true
         },
         {
-          name: 'Wins',
-          value: `${profile.wins}`,
-          inline: true,
-        },
-        {
-          name: 'Losses',
-          value: `${profile.losses}`,
-          inline: true,
-        },
-        {
-          name: 'Current Streak',
-          value: `${profile.winstreak}`,
-          inline: true,
-        },
-        {
-          name: 'Total Games',
+          name: '🎮 Matches Played',
           value: `${totalGames}`,
-          inline: true,
+          inline: true
         },
         {
-          name: 'Joined',
-          value: `<t:${Math.floor(
-            new Date(profile.created_at).getTime() / 1000
-          )}:D>`,
-          inline: true,
+          name: '📅 Joined Database',
+          value: `<t:${Math.floor(createdDate.getTime() / 1000)}:D>`,
+          inline: true
         }
       )
+      .setFooter({
+        text: 'Astra Competitive Profile'
+      })
       .setTimestamp();
 
     await interaction.reply({
-      embeds: [embed],
+      embeds: [embed]
     });
-  },
+  }
 };
