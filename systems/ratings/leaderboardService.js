@@ -61,8 +61,28 @@ async function getUserProfile(discordId) {
   return result.rows[0] || null;
 }
 
+async function getUserHistory(discordId, limit = 10) {
+  const sql = `
+    SELECT
+      match_id,
+      old_rating,
+      new_rating,
+      delta,
+      note,
+      changed_at
+    FROM ratings
+    WHERE user_id = $1
+    ORDER BY changed_at DESC
+    LIMIT $2
+  `;
+
+  const result = await query(sql, [discordId, limit]);
+  return result.rows;
+}
+
 module.exports = {
   getTopPlayers,
   getUserRank,
   getUserProfile,
+  getUserHistory
 };
