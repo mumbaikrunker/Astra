@@ -3,135 +3,113 @@ const { ensureUser } = require('../systems/users/userService');
 const { getUserProfile } = require('../systems/ratings/leaderboardService');
 
 function getTier(rating) {
-  if (rating >= 3500) return 'Kracked';
-  if (rating >= 3000) return 'Master';
-  if (rating >= 2300) return 'Diamond';
-  if (rating >= 2000) return 'Platinum';
-  if (rating >= 1100) return 'Gold';
-  if (rating >= 400) return 'Silver';
-  return 'Bronze';
+    if (rating >= 3500) return 'Kracked';
+    if (rating >= 3000) return 'Master';
+    if (rating >= 2300) return 'Diamond';
+    if (rating >= 2000) return 'Platinum';
+    if (rating >= 1100) return 'Gold';
+    if (rating >= 400) return 'Silver';
+    return 'Bronze';
 }
 
 function getTierColor(rating) {
-if (rating >= 3500) return 0xff4655; if (rating >= 3000) return 0x9b59b6; if (rating >= 2300) return 0x3498db; if (rating >= 2000) return 0x2ecc71; if (rating >= 1100) return 0xf1c40f; if (rating >= 400) return 0x95a5a6; return 0x7f8c8d;
+    if (rating >= 3500) return 0xff4655;
+    if (rating >= 3000) return 0x9b59b6;
+    if (rating >= 2300) return 0x3498db;
+    if (rating >= 2000) return 0x2ecc71;
+    if (rating >= 1100) return 0xf1c40f;
+    if (rating >= 400) return 0x95a5a6;
+    return 0x7f8c8d;
 }
 
 module.exports = {
-  data: new SlashCommandBuilder()
-    .setName('profile')
-    .setDescription('View your Astra competitive profile'),
+    data: new SlashCommandBuilder()
+        .setName('profile')
+        .setDescription('View your Astra competitive profile'),
 
-  async execute(interaction) {
-    await ensureUser(
-      interaction.user.id,
-      interaction.user.username
-    );
+    async execute(interaction) {
+        try {
+            await ensureUser(
+                interaction.user.id,
+                interaction.user.username
+            );
 
-    const userData = await getUserProfile(interaction.user.id);
+            const userData = await getUserProfile(
+                interaction.user.id
+            );
 
-    if (!userData) {
-      return interaction.reply({
-        content: 'No profile data found.',
-        ephemeral: true
-      });
-    }
+            if (!userData) {
+                return interaction.reply({
+                    content: 'No profile data found.',
+                    ephemeral: true
+                });
+            }
 
-    const member = interaction.member;
+            const wins = userData.wins || 0;
+            const losses = userData.losses || 0;
+            const totalGames = wins + losses;
 
-    const totalGames =
-      (userData.wins || 0) +
-      (userData.losses || 0);
+            const winRate = totalGames > 0
+                ? ((wins / totalGames) * 100).toFixed(1)
+                : '0.0';
 
-    const winRate =
-      totalGames > 0
-        ? ((userData.wins / totalGames) * 100).toFixed(1)
-        : '0.0';
+            const tier = getTier(userData.rating || 1500);
 
-    const tier = getTier(userData.rating);
+            const registeredDate = userData.created_at
+                ? new Date(userData.created_at).toLocaleDateString()
+                : 'Unknown';
 
-    const joinedDiscord =
-      Math.floor(interaction.user.createdTimestamp / 1000);
+            const embed = new EmbedBuilder()
+                .setColor(getTierColor(userData.rating || 1500))
+                .setAuthor({
+                    name: '👤 ASTRA Profile'
+                })
+                .setThumbnail(
+                    interaction.user.displayAvatarURL({
+                        size: 256
+                    })
+                )
+                .setDescription(
+`**Player:** ${interaction.user.username}
 
-    const joinedServer =
-      member?.joinedTimestamp
-        ? Math.floor(member.joinedTimestamp / 1000)
-        : null;
+🏆 **Competitive**
+• Rank: #${userData.rank || 'N/A'}
+• Tier: ${tier}
+• Rating: ${userData.rating || 1500}
 
-    const registeredDate =
-      userData.created_at
-        ? Math.floor(
-            new Date(userData.created_at).getTime() / 1000
-          )
-        : null;
+📊 **Statistics**
+• Wins: ${wins}
+• Losses: ${losses}
+• Matches Played: ${totalGames}
+• Win Rate: ${winRate}%
 
-    const embed = new EmbedBuilder()
-      .setColor(getTierColor(userData.rating))
-      .setAuthor({
-        name: interaction.user.username,
-        iconURL: interaction.user.displayAvatarURL({
-          dynamic: true
-        })
-      })
-      .setThumbnail(
-        interaction.user.displayAvatarURL({
-          dynamic: true,
-          size: 512
-        })
-      )
-      .setTitle('ASTRA PLAYER PROFILE')
-      .addFields(
-        {
-          name: 'PLAYER INFORMATION',
-          value: [
-            `Username: ${interaction.user.username}`,
-            `Display Name: ${member?.displayName || interaction.user.username}`,
-            joinedServer
-              ? `Joined Server: <t:${joinedServer}:D>`
-              : 'Joined Server: Unknown',
-            `Joined Discord: <t:${joinedDiscord}:D>`
-          ].join('\n'),
-          inline: false
-        },
-        {
-          name: 'COMPETITIVE STATISTICS',
-          value: [
-            `Rank: #${userData.rank}`,
-            `Rating: ${userData.rating}`,
-            `Tier: ${tier}`,
-            `Current Streak: ${userData.winstreak || 0}`
-          ].join('\n'),
-          inline: false
-        },
-        {
-          name: 'MATCH HISTORY',
-          value: [
-            `Wins: ${userData.wins || 0}`,
-            `Losses: ${userData.losses || 0}`,
-            `Matches Played: ${totalGames}`,
-            `Win Rate: ${winRate}%`
-          ].join('\n'),
-          inline: false
-        },
-        {
-          name: 'ACCOUNT STATUS',
-          value: [
-            'Queue Banned: No',
-            'Warnings: 0',
-            'Timeouts: 0',
-            registeredDate
-              ? `Registered: <t:${registeredDate}:D>`
-              : 'Registered: Unknown'
-          ].join('\n'),
-          inline: false
+🔥 **Current Streak**
+• ${userData.winstreak || 0} Wins
+
+📅 **Registered**
+• ${registeredDate}
+
+━━━━━━━━━━━━━━━━━━
+ASTRA Competitive System`
+                )
+                .setFooter({
+                    text: `${tier} • Rank #${userData.rank || 'N/A'}`
+                })
+                .setTimestamp();
+
+            await interaction.reply({
+                embeds: [embed]
+            });
+
+        } catch (error) {
+            console.error('Profile command error:', error);
+
+            if (!interaction.replied) {
+                return interaction.reply({
+                    content: 'An error occurred while loading your profile.',
+                    ephemeral: true
+                });
+            }
         }
-      )
-      .setFooter({
-        text: `Astra Competitive System • ${tier}`
-      })
-      .setTimestamp();
-
-    await interaction.reply({
-      embeds: [embed]
-    });
-  }
+    }
 };
