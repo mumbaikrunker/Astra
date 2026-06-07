@@ -10,14 +10,13 @@ const {
 } = require('../systems/configs/guildConfigService');
 
 async function showChannelsPanel(interaction) {
-    const config = await getGuildConfig(
-        interaction.guildId
-    );
+    try {
+        const config = await getGuildConfig(interaction.guildId);
 
-    const embed = new EmbedBuilder()
-        .setColor(0x5865f2)
-        .setTitle('📁 ASTRA Channel Configuration')
-        .setDescription(
+        const embed = new EmbedBuilder()
+            .setColor(0x5865f2)
+            .setTitle('📁 ASTRA Channel Configuration')
+            .setDescription(
 `Configure matchmaking channels.
 
 **2v2 Queue**
@@ -34,10 +33,9 @@ ${config.custom_queue_channel_id ? `<#${config.custom_queue_channel_id}>` : 'Not
 
 **Results Channel**
 ${config.results_channel_id ? `<#${config.results_channel_id}>` : 'Not Set'}`
-        );
+            );
 
-    const row1 = new ActionRowBuilder()
-        .addComponents(
+        const row1 = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
                 .setCustomId('astra_set_2v2')
                 .setLabel('Set 2v2')
@@ -54,8 +52,7 @@ ${config.results_channel_id ? `<#${config.results_channel_id}>` : 'Not Set'}`
                 .setStyle(ButtonStyle.Primary)
         );
 
-    const row2 = new ActionRowBuilder()
-        .addComponents(
+        const row2 = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
                 .setCustomId('astra_set_custom')
                 .setLabel('Set Custom')
@@ -67,11 +64,22 @@ ${config.results_channel_id ? `<#${config.results_channel_id}>` : 'Not Set'}`
                 .setStyle(ButtonStyle.Success)
         );
 
-    return interaction.reply({
-        embeds: [embed],
-        components: [row1, row2],
-        ephemeral: true
-    });
+        return await interaction.reply({
+            embeds: [embed],
+            components: [row1, row2],
+            ephemeral: true
+        });
+
+    } catch (error) {
+        console.error('[SETUP MANAGER ERROR]', error);
+
+        if (!interaction.replied) {
+            return await interaction.reply({
+                content: `❌ Setup error: ${error.message}`,
+                ephemeral: true
+            });
+        }
+    }
 }
 
 module.exports = {
