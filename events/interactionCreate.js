@@ -33,45 +33,40 @@ module.exports = {
 
         try {
 // ===== ASTRA SETUP BUTTONS =====
+
 if (interaction.customId === 'astra_setup_channels') {
-    return await showChannelsPanel(
-        interaction
-    );
-} {
-  return await interaction.reply({
-    content: '📁 Channel setup system coming next.',
-    ephemeral: true
-  });
+    return await showChannelsPanel(interaction);
 }
 
 if (interaction.customId === 'astra_setup_timers') {
-  return await interaction.reply({
-    content: '⏱️ Timer setup system coming next.',
-    ephemeral: true
-  });
+    return await interaction.reply({
+        content: '⏱️ Timer setup system coming next.',
+        ephemeral: true
+    });
 }
 
 if (interaction.customId === 'astra_setup_ready') {
-  return await interaction.reply({
-    content: '✅ Ready system setup coming next.',
-    ephemeral: true
-  });
+    return await interaction.reply({
+        content: '✅ Ready system setup coming next.',
+        ephemeral: true
+    });
 }
 
 if (interaction.customId === 'astra_setup_prefix') {
-  return await interaction.reply({
-    content: '🔧 Prefix setup coming next.',
-    ephemeral: true
-  });
+    return await interaction.reply({
+        content: '🔧 Prefix setup coming next.',
+        ephemeral: true
+    });
 }
 
 // ===== EXISTING BUTTONS =====
+
 if (interaction.customId.startsWith('report_')) {
-  return await handleReportButton(interaction);
+    return await handleReportButton(interaction);
 }
 
 if (interaction.customId.startsWith('matchinfo_')) {
-  return await handleMatchInfoButton(interaction);
+    return await handleMatchInfoButton(interaction);
 }
 
 return await handleReadyButton(interaction);
