@@ -1,3 +1,6 @@
+const {
+    showChannelsPanel
+} = require('../utils/setupManager');
 const { handleButton: handleReadyButton, getSession } = require('../utils/readyManager');
 const { handleReportButton } = require('../utils/reportManager');
 const { handleMatchInfoButton } = require('../utils/matchInfoManager');
@@ -31,6 +34,10 @@ module.exports = {
         try {
 // ===== ASTRA SETUP BUTTONS =====
 if (interaction.customId === 'astra_setup_channels') {
+    return await showChannelsPanel(
+        interaction
+    );
+} {
   return await interaction.reply({
     content: '📁 Channel setup system coming next.',
     ephemeral: true
