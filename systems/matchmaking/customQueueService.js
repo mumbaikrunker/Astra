@@ -1,6 +1,3 @@
-const {
-    getCustomQueues
-} = require('../systems/matchmaking/customQueueService');
 const { query } = require('../../database/postgres');
 
 async function createCustomQueue(
