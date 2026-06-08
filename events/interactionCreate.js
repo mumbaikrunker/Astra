@@ -12,7 +12,8 @@ const {
 } = require('../systems/configs/guildConfigService');
 const {
     showChannelsPanel,
-    showChannelSelector
+    showChannelSelector,
+    showManageQueuesPanel
 } = require('../utils/setupManager');
 const { handleButton: handleReadyButton, getSession } = require('../utils/readyManager');
 const { handleReportButton } = require('../utils/reportManager');
@@ -180,8 +181,12 @@ return await handleReadyButton(interaction);
 if (interaction.isChannelSelectMenu()) {
 if (
     interaction.customId ===
-    'astra_custom_queue_channel'
+    'astra_manage_custom_queues'
 ) {
+    return await showManageQueuesPanel(
+        interaction
+    );
+} {
 
     const pending =
         pendingCustomQueues.get(

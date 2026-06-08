@@ -8,6 +8,10 @@ const {
 } = require('discord.js');
 
 const {
+    StringSelectMenuBuilder
+} = require('discord.js');
+
+const {
     getGuildConfig
 } = require('../systems/configs/guildConfigService');
 
@@ -134,7 +138,51 @@ async function showChannelSelector(interaction, type) {
     });
 }
 
+async function showManageQueuesPanel(
+    interaction
+) {
+
+    const queues =
+        await getCustomQueues(
+            interaction.guildId
+        );
+
+    if (!queues.length) {
+        return await interaction.reply({
+            content:
+                '❌ No custom queues found.'
+        });
+    }
+
+    const menu =
+        new StringSelectMenuBuilder()
+            .setCustomId(
+                'astra_manage_queue_select'
+            )
+            .setPlaceholder(
+                'Select a queue'
+            )
+            .addOptions(
+                queues.map(queue => ({
+                    label:
+                        `${queue.queue_name} (${queue.queue_size})`,
+                    value:
+                        String(queue.id)
+                }))
+            );
+
+    const row =
+        new ActionRowBuilder()
+            .addComponents(menu);
+
+    return await interaction.reply({
+        content:
+            'Select a queue to manage.',
+        components: [row]
+    });
+}
 module.exports = {
     showChannelsPanel,
-    showChannelSelector
+    showChannelSelector,
+    showManageQueuesPanel
 };
