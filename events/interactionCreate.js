@@ -5,6 +5,9 @@ const {
     ActionRowBuilder
 } = require('discord.js');
 const {
+    createCustomQueue
+} = require('../systems/matchmaking/customQueueService');
+const {
     updateGuildConfig
 } = require('../systems/configs/guildConfigService');
 const {
@@ -16,6 +19,7 @@ const { handleReportButton } = require('../utils/reportManager');
 const { handleMatchInfoButton } = require('../utils/matchInfoManager');
 
 const DEBUG = process.env.DEBUG === 'true';
+const pendingCustomQueues = new Map();
 
 /**
  * Handle all Discord interactions: slash commands, buttons, and other interactions
@@ -174,7 +178,48 @@ return await handleReadyButton(interaction);
         return;
       }
 if (interaction.isChannelSelectMenu()) {
+if (
+    interaction.customId ===
+    'astra_custom_queue_channel'
+) {
 
+    const pending =
+        pendingCustomQueues.get(
+            interaction.user.id
+        );
+
+    if (!pending) {
+        return await interaction.reply({
+            content:
+                '❌ Queue creation expired.',
+            ephemeral: true
+        });
+    }
+
+    const channelId =
+        interaction.values[0];
+
+    await createCustomQueue(
+        interaction.guildId,
+        pending.queueName,
+        pending.queueSize,
+        channelId
+    );
+
+    pendingCustomQueues.delete(
+        interaction.user.id
+    );
+
+    return await interaction.update({
+        content:
+            `✅ Custom Queue Created
+
+Name: ${pending.queueName}
+Size: ${pending.queueSize}
+Channel: <#${channelId}>`,
+        components: []
+    });
+}
     const [prefix, type] =
         interaction.customId.split(':');
 
@@ -237,12 +282,43 @@ if (interaction.isModalSubmit()) {
             return await interaction.reply({
                 content:
                     '❌ Queue size must be a number greater than 1.',
+                ephemeral: true
             });
         }
 
+        pendingCustomQueues.set(
+            interaction.user.id,
+            {
+                queueName,
+                queueSize
+            }
+        );
+
+        const {
+            ActionRowBuilder,
+            ChannelSelectMenuBuilder,
+            ChannelType
+        } = require('discord.js');
+
+        const row =
+            new ActionRowBuilder().addComponents(
+                new ChannelSelectMenuBuilder()
+                    .setCustomId(
+                        'astra_custom_queue_channel'
+                    )
+                    .setPlaceholder(
+                        'Select queue channel'
+                    )
+                    .setChannelTypes(
+                        ChannelType.GuildText
+                    )
+            );
+
         return await interaction.reply({
             content:
-                `✅ Queue Created\n\nName: ${queueName}\nSize: ${queueSize}\n\n(Channel selection coming next)`, 
+                'Select the channel for this queue.',
+            components: [row],
+            ephemeral: true
         });
     }
 }
