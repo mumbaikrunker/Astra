@@ -84,6 +84,19 @@ if (interaction.customId === 'astra_set_custom') {
 if (interaction.customId === 'astra_set_results') {
     return await showChannelSelector(interaction, 'results');
 }
+if (interaction.customId === 'astra_add_custom_queue') {
+    return await interaction.reply({
+        content: '🚧 Custom queue creation coming next.',
+        ephemeral: true
+    });
+}
+
+if (interaction.customId === 'astra_manage_custom_queues') {
+    return await interaction.reply({
+        content: '🚧 Queue manager coming next.',
+        ephemeral: true
+    });
+}
 
 if (interaction.customId.startsWith('report_')) {
     return await handleReportButton(interaction);
