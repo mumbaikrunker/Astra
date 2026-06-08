@@ -73,32 +73,39 @@ ${config.results_channel_id ? `<#${config.results_channel_id}>` : 'Not Set'}`
         );
 
         const row2 = new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-                .setCustomId('astra_set_custom')
-                .setLabel('Set Custom')
-                .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+        .setCustomId('astra_add_custom_queue')
+        .setLabel('Add Custom Queue')
+        .setStyle(ButtonStyle.Success),
 
-            new ButtonBuilder()
-                .setCustomId('astra_set_results')
-                .setLabel('Set Results')
-                .setStyle(ButtonStyle.Success),
+    new ButtonBuilder()
+        .setCustomId('astra_manage_custom_queues')
+        .setLabel('Manage Queues')
+        .setStyle(ButtonStyle.Secondary),
 
-            new ButtonBuilder()
-                .setCustomId('astra_back_setup')
-                .setLabel('Back')
-                .setStyle(ButtonStyle.Danger)
-        );
+    new ButtonBuilder()
+        .setCustomId('astra_set_results')
+        .setLabel('Set Results')
+        .setStyle(ButtonStyle.Primary)
+);
+
+const row3 = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+        .setCustomId('astra_back_setup')
+        .setLabel('Back')
+        .setStyle(ButtonStyle.Danger)
+);
 
         if (interaction.isButton()) {
             return await interaction.update({
                 embeds: [embed],
-                components: [row1, row2]
+                components: [row1, row2, row3]
             });
         }
 
         return await interaction.reply({
             embeds: [embed],
-            components: [row1, row2]
+            components: [row1, row2, row3]
         });
 
     } catch (error) {
