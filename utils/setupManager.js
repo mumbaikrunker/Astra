@@ -14,6 +14,20 @@ const {
 async function showChannelsPanel(interaction) {
     try {
         const config = await getGuildConfig(interaction.guildId);
+        const customQueues =
+    await getCustomQueues(
+        interaction.guildId
+    );
+
+const customQueueText =
+    customQueues.length
+        ? customQueues
+              .map(
+                  q =>
+                      `• ${q.queue_name} (${q.queue_size})`
+              )
+              .join('\n')
+        : 'No custom queues configured';
 
         const embed = new EmbedBuilder()
             .setColor(0x5865f2)
