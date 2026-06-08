@@ -1,5 +1,9 @@
 const {
-    showChannelsPanel
+    updateGuildConfig
+} = require('../systems/configs/guildConfigService');
+const {
+    showChannelsPanel,
+    showChannelSelector
 } = require('../utils/setupManager');
 const { handleButton: handleReadyButton, getSession } = require('../utils/readyManager');
 const { handleReportButton } = require('../utils/reportManager');
@@ -61,6 +65,26 @@ if (interaction.customId === 'astra_setup_prefix') {
 
 // ===== EXISTING BUTTONS =====
 
+if (interaction.customId === 'astra_set_2v2') {
+    return await showChannelSelector(interaction, '2v2');
+}
+
+if (interaction.customId === 'astra_set_3v3') {
+    return await showChannelSelector(interaction, '3v3');
+}
+
+if (interaction.customId === 'astra_set_4v4') {
+    return await showChannelSelector(interaction, '4v4');
+}
+
+if (interaction.customId === 'astra_set_custom') {
+    return await showChannelSelector(interaction, 'custom');
+}
+
+if (interaction.customId === 'astra_set_results') {
+    return await showChannelSelector(interaction, 'results');
+}
+
 if (interaction.customId.startsWith('report_')) {
     return await handleReportButton(interaction);
 }
@@ -107,9 +131,48 @@ return await handleReadyButton(interaction);
         }
         return;
       }
+if (interaction.isChannelSelectMenu()) {
 
+    const [prefix, type] =
+        interaction.customId.split(':');
+
+    if (prefix !== 'astra_channel_select') {
+        return;
+    }
+
+    const channelId = interaction.values[0];
+
+    const map = {
+        '2v2': 'two_v_two_channel_id',
+        '3v3': 'three_v_three_channel_id',
+        '4v4': 'four_v_four_channel_id',
+        'custom': 'custom_queue_channel_id',
+        'results': 'results_channel_id'
+    };
+
+    const key = map[type];
+
+    if (!key) {
+        return;
+    }
+
+    await updateGuildConfig(
+        interaction.guildId,
+        key,
+        channelId
+    );
+
+    return await interaction.update({
+        content: `✅ ${type} channel saved: <#${channelId}>`,
+        embeds: [],
+        components: []
+    });
+}
       // ===== SLASH COMMAND INTERACTIONS =====
-      if (!interaction.isChatInputCommand()) {
+      if (
+    !interaction.isChatInputCommand() &&
+    !interaction.isChannelSelectMenu()
+) {
         if (DEBUG) {
           console.log(`[DEBUG] Ignoring non-command interaction: ${interaction.type}`);
         }

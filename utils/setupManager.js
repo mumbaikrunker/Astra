@@ -2,7 +2,9 @@ const {
     EmbedBuilder,
     ActionRowBuilder,
     ButtonBuilder,
-    ButtonStyle
+    ButtonStyle,
+    ChannelSelectMenuBuilder,
+    ChannelType
 } = require('discord.js');
 
 const {
@@ -61,13 +63,24 @@ ${config.results_channel_id ? `<#${config.results_channel_id}>` : 'Not Set'}`
             new ButtonBuilder()
                 .setCustomId('astra_set_results')
                 .setLabel('Set Results')
-                .setStyle(ButtonStyle.Success)
+                .setStyle(ButtonStyle.Success),
+
+            new ButtonBuilder()
+                .setCustomId('astra_back_setup')
+                .setLabel('Back')
+                .setStyle(ButtonStyle.Danger)
         );
+
+        if (interaction.isButton()) {
+            return await interaction.update({
+                embeds: [embed],
+                components: [row1, row2]
+            });
+        }
 
         return await interaction.reply({
             embeds: [embed],
-            components: [row1, row2],
-            ephemeral: true
+            components: [row1, row2]
         });
 
     } catch (error) {
@@ -75,13 +88,28 @@ ${config.results_channel_id ? `<#${config.results_channel_id}>` : 'Not Set'}`
 
         if (!interaction.replied) {
             return await interaction.reply({
-                content: `❌ Setup error: ${error.message}`,
-                ephemeral: true
+                content: `❌ Setup error: ${error.message}`
             });
         }
     }
 }
 
+async function showChannelSelector(interaction, type) {
+    const row = new ActionRowBuilder().addComponents(
+        new ChannelSelectMenuBuilder()
+            .setCustomId(`astra_channel_select:${type}`)
+            .setPlaceholder('Select a channel...')
+            .setChannelTypes(ChannelType.GuildText)
+    );
+
+    return await interaction.update({
+        content: `Select the channel for ${type}`,
+        embeds: [],
+        components: [row]
+    });
+}
+
 module.exports = {
-    showChannelsPanel
+    showChannelsPanel,
+    showChannelSelector
 };
