@@ -11,6 +11,10 @@ const {
     getGuildConfig
 } = require('../systems/configs/guildConfigService');
 
+const {
+    getCustomQueues
+} = require('../systems/matchmaking/customQueueService');
+
 async function showChannelsPanel(interaction) {
     try {
         const config = await getGuildConfig(interaction.guildId);
