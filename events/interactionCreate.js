@@ -1,4 +1,10 @@
 const {
+    ModalBuilder,
+    TextInputBuilder,
+    TextInputStyle,
+    ActionRowBuilder
+} = require('discord.js');
+const {
     updateGuildConfig
 } = require('../systems/configs/guildConfigService');
 const {
@@ -85,10 +91,33 @@ if (interaction.customId === 'astra_set_results') {
     return await showChannelSelector(interaction, 'results');
 }
 if (interaction.customId === 'astra_add_custom_queue') {
-    return await interaction.reply({
-        content: '🚧 Custom queue creation coming next.',
-        ephemeral: true
-    });
+
+    const modal = new ModalBuilder()
+        .setCustomId('astra_create_queue_modal')
+        .setTitle('Create Custom Queue');
+
+    const queueName =
+        new TextInputBuilder()
+            .setCustomId('queue_name')
+            .setLabel('Queue Name')
+            .setStyle(TextInputStyle.Short)
+            .setRequired(true)
+            .setMaxLength(50);
+
+    const queueSize =
+        new TextInputBuilder()
+            .setCustomId('queue_size')
+            .setLabel('Queue Size')
+            .setStyle(TextInputStyle.Short)
+            .setRequired(true)
+            .setPlaceholder('10');
+
+    modal.addComponents(
+        new ActionRowBuilder().addComponents(queueName),
+        new ActionRowBuilder().addComponents(queueSize)
+    );
+
+    return await interaction.showModal(modal);
 }
 
 if (interaction.customId === 'astra_manage_custom_queues') {
@@ -180,6 +209,42 @@ if (interaction.isChannelSelectMenu()) {
         embeds: [],
         components: []
     });
+}
+if (interaction.isModalSubmit()) {
+
+    if (
+        interaction.customId ===
+        'astra_create_queue_modal'
+    ) {
+
+        const queueName =
+            interaction.fields.getTextInputValue(
+                'queue_name'
+            );
+
+        const queueSize =
+            parseInt(
+                interaction.fields.getTextInputValue(
+                    'queue_size'
+                ),
+                10
+            );
+
+        if (
+            Number.isNaN(queueSize) ||
+            queueSize < 2
+        ) {
+            return await interaction.reply({
+                content:
+                    '❌ Queue size must be a number greater than 1.',
+            });
+        }
+
+        return await interaction.reply({
+            content:
+                `✅ Queue Created\n\nName: ${queueName}\nSize: ${queueSize}\n\n(Channel selection coming next)`, 
+        });
+    }
 }
       // ===== SLASH COMMAND INTERACTIONS =====
       if (
