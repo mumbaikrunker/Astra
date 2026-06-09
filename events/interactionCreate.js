@@ -125,11 +125,13 @@ if (interaction.customId === 'astra_add_custom_queue') {
     return await interaction.showModal(modal);
 }
 
-if (interaction.customId === 'astra_manage_custom_queues') {
-    return await interaction.reply({
-        content: '🚧 Queue manager coming next.',
-        ephemeral: true
-    });
+if (
+    interaction.customId ===
+    'astra_manage_custom_queues'
+) {
+    return await showManageQueuesPanel(
+        interaction
+    );
 }
 
 if (interaction.customId.startsWith('report_')) {
@@ -179,14 +181,11 @@ return await handleReadyButton(interaction);
         return;
       }
 if (interaction.isChannelSelectMenu()) {
-if (
-    interaction.customId ===
-    'astra_manage_custom_queues'
-) {
-    return await showManageQueuesPanel(
-        interaction
-    );
-} {
+const {
+    showChannelsPanel,
+    showChannelSelector,
+    showManageQueuesPanel
+} = require('../utils/setupManager'); {
 
     const pending =
         pendingCustomQueues.get(
