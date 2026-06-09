@@ -11,6 +11,9 @@ const {
     updateGuildConfig
 } = require('../systems/configs/guildConfigService');
 const {
+    getCustomQueue
+} = require('../systems/matchmaking/customQueueService');
+const {
     showChannelsPanel,
     showChannelSelector,
     showManageQueuesPanel
@@ -180,6 +183,93 @@ return await handleReadyButton(interaction);
         }
         return;
       }
+if (interaction.isStringSelectMenu()) {
+
+    if (
+        interaction.customId ===
+        'astra_manage_queue_select'
+    ) {
+
+        const queueId =
+            interaction.values[0];
+
+        const queue =
+            await getCustomQueue(
+                queueId
+            );
+
+        if (!queue) {
+            return await interaction.reply({
+                content:
+                    '❌ Queue not found.',
+                ephemeral: true
+            });
+        }
+
+        const {
+            EmbedBuilder,
+            ActionRowBuilder,
+            ButtonBuilder,
+            ButtonStyle
+        } = require('discord.js');
+
+        const embed =
+            new EmbedBuilder()
+                .setTitle(
+                    `Manage Queue: ${queue.queue_name}`
+                )
+                .setDescription(
+`Size: ${queue.queue_size}
+
+Channel:
+<#${queue.channel_id}>`
+                );
+
+        const row =
+            new ActionRowBuilder()
+                .addComponents(
+
+                    new ButtonBuilder()
+                        .setCustomId(
+                            `queue_rename:${queue.id}`
+                        )
+                        .setLabel(
+                            'Rename'
+                        )
+                        .setStyle(
+                            ButtonStyle.Primary
+                        ),
+
+                    new ButtonBuilder()
+                        .setCustomId(
+                            `queue_size:${queue.id}`
+                        )
+                        .setLabel(
+                            'Change Size'
+                        )
+                        .setStyle(
+                            ButtonStyle.Secondary
+                        ),
+
+                    new ButtonBuilder()
+                        .setCustomId(
+                            `queue_delete:${queue.id}`
+                        )
+                        .setLabel(
+                            'Delete'
+                        )
+                        .setStyle(
+                            ButtonStyle.Danger
+                        )
+                );
+
+        return await interaction.update({
+            content: '',
+            embeds: [embed],
+            components: [row]
+        });
+    }
+}
 if (interaction.isChannelSelectMenu()) {
 const {
     showChannelsPanel,
