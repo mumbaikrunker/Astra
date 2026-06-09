@@ -1,6 +1,7 @@
-const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, PermissionsBitField } = require('discord.js');
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, PermissionsBitField } = require('discord.js'); // Removed StringSelectMenuBuilder as it's not used here
 const { getMatch, updateMatchStatus } = require('../systems/matchmaking/matchService');
 const { applyMatchRatings } = require('../systems/ratings/ratingService');
+const { getGuildConfig } = require('../systems/configs/guildConfigService');
 
 function buildMatchInfoEmbed(match) {
   const fields = [
@@ -82,14 +83,44 @@ async function handleMatchInfoButton(interaction) {
     resolvedBy: interaction.user.tag,
   });
 
+  // Phase 5 & 6: Enhanced Result UI
+  const config = await getGuildConfig(interaction.guildId);
+  
   const resultEmbed = new EmbedBuilder()
-    .setTitle('Match Resolved')
+    .setTitle('🏆 Match Results')
     .setColor('Green')
-    .setDescription(`Match **${matchId}** has been resolved as **${outcome === 'A' ? 'Team A' : outcome === 'B' ? 'Team B' : 'Tie'}**.`)
+    .setDescription(`**Winner:** ${outcome === 'A' ? 'Team A' : outcome === 'B' ? 'Team B' : 'Tie'}`)
     .addFields(
-      { name: 'ELO Changes', value: ratingChanges.map((change) => `${change.name}: ${change.oldRating} ➜ ${change.newRating} (${change.delta >= 0 ? '+' : ''}${change.delta})`).join('\n') }
+      { name: 'Team A', value: formatTeamList(match.team_a), inline: true },
+      { name: 'Team B', value: formatTeamList(match.team_b), inline: true },
+      { name: 'Rating Changes', value: ratingChanges.map((c) => `**${c.name}**: ${c.oldRating} ➜ ${c.newRating} (\`${c.delta >= 0 ? '+' : ''}${c.delta}\`)`).join('\n') }
     )
     .setTimestamp();
+
+  const resultButtons = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId(`match_rematch:${matchId}`).setLabel('Rematch').setStyle(ButtonStyle.Primary),
+      new ButtonBuilder().setCustomId(`match_vote_mvp:${matchId}`).setLabel('Vote MVP').setStyle(ButtonStyle.Success)
+  );
+
+  // Send to Public Results Channel
+  if (config.results_channel_id) {
+      const resChan = await interaction.client.channels.fetch(config.results_channel_id).catch(() => null);
+      if (resChan) await resChan.send({ embeds: [resultEmbed], components: [resultButtons] });
+  }
+
+  // Send to Admin Results Channel (Phase 5)
+  if (config.admin_results_channel_id) {
+      const adminEmbed = new EmbedBuilder()
+          .setTitle('🛡️ Admin Match Log')
+          .setColor('Greyple')
+          .addFields(
+              { name: 'Match ID', value: matchId, inline: true },
+              { name: 'Reporter', value: interaction.user.tag, inline: true },
+              { name: 'Rating Delta', value: `Avg ${Math.abs(ratingChanges[0]?.delta || 0)} pts`, inline: true }
+          );
+      const adminChan = await interaction.client.channels.fetch(config.admin_results_channel_id).catch(() => null);
+      if (adminChan) await adminChan.send({ embeds: [adminEmbed] });
+  }
 
   await interaction.update({ content: null, embeds: [resultEmbed], components: [] });
 }

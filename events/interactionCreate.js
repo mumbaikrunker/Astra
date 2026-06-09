@@ -2,28 +2,17 @@ const {
     ModalBuilder,
     TextInputBuilder,
     TextInputStyle,
-    ActionRowBuilder
+    ActionRowBuilder // Keep ActionRowBuilder for generic error replies if needed
 } = require('discord.js');
-const {
-    createCustomQueue
-} = require('../systems/matchmaking/customQueueService');
-const {
-    updateGuildConfig
-} = require('../systems/configs/guildConfigService');
-const {
-    getCustomQueue
-} = require('../systems/matchmaking/customQueueService');
-const {
-    showChannelsPanel,
-    showChannelSelector,
-    showManageQueuesPanel
-} = require('../utils/setupManager');
-const { handleButton: handleReadyButton, getSession } = require('../utils/readyManager');
-const { handleReportButton } = require('../utils/reportManager');
-const { handleMatchInfoButton } = require('../utils/matchInfoManager');
+
+// Handler Imports
+const { handleSetupInteraction } = require('../events/setupHandlers');
+const { handleQueueInteraction } = require('../events/queueHandlers');
+const { handleReportInteraction } = require('../events/reportHandlers');
+const { handleReadyInteraction } = require('../events/readyHandlers');
+const { handleResultInteraction } = require('../events/resultHandlers');
 
 const DEBUG = process.env.DEBUG === 'true';
-const pendingCustomQueues = new Map();
 
 /**
  * Handle all Discord interactions: slash commands, buttons, and other interactions
@@ -38,6 +27,38 @@ module.exports = {
   name: 'interactionCreate',
   once: false,
   async execute(interaction, client) {
+    // Helper function for error handling
+    const handleInteractionError = async (error, handlerName, customId = 'N/A') => {
+      console.error(`[${handlerName}] Error handling interaction:`, {
+        customId: customId,
+        userId: interaction.user?.id,
+        username: interaction.user?.username,
+        guildId: interaction.guildId,
+        guildName: interaction.guild?.name || 'DM',
+        error: error.message,
+        stack: error.stack,
+        timestamp: new Date().toISOString()
+      });
+
+      if (DEBUG) {
+        console.error(`[DEBUG] ${handlerName} error details:`, error);
+      }
+
+      try {
+        const errorMessage = `❌ Error processing ${handlerName.toLowerCase().replace(' handler', '')}. Please try again.`;
+        if (interaction.replied || interaction.deferred) {
+          await interaction.followUp({ content: errorMessage, ephemeral: true });
+        } else {
+          await interaction.reply({ content: errorMessage, ephemeral: true });
+        }
+      } catch (replyError) {
+        console.error(`[${handlerName}] Failed to send error reply:`, {
+          customId: customId,
+          replyError: replyError.message
+        });
+      }
+    };
+
     try {
       if (DEBUG) {
         console.log(`[DEBUG] [Interaction] Type: ${interaction.type}, User: ${interaction.user.tag}`);
@@ -45,382 +66,94 @@ module.exports = {
 
       // ===== BUTTON INTERACTIONS =====
       if (interaction.isButton()) {
-        if (DEBUG) {
-          console.log(`[DEBUG] Button interaction received: ${interaction.customId}`);
-        }
-
         try {
-// ===== ASTRA SETUP BUTTONS =====
+          if (interaction.customId.startsWith('astra_setup_') ||
+              interaction.customId.startsWith('astra_set_') ||
+              interaction.customId === 'astra_manage_custom_queues' ||
+              interaction.customId === 'astra_main_menu' || // Back button for setup panels
+              interaction.customId.startsWith('guild_config_set_ready_method:') // For setting ready method
+            ) {
+            return await handleSetupInteraction(interaction, client);
+          }
 
-if (interaction.customId === 'astra_setup_channels') {
-    return await showChannelsPanel(interaction);
-}
+          if (interaction.customId.startsWith('astra_add_custom_queue') ||
+              interaction.customId.startsWith('queue_') // For custom queue management buttons (rename, size, channel, delete, confirm, cancel)
+            ) {
+            return await handleQueueInteraction(interaction, client);
+          }
 
-if (interaction.customId === 'astra_setup_timers') {
-    return await interaction.reply({
-        content: '⏱️ Timer setup system coming next.',
-        ephemeral: true
-    });
-}
+          if (interaction.customId.startsWith('report_') || interaction.customId.startsWith('matchinfo_')) {
+            return await handleReportInteraction(interaction, client);
+          }
 
-if (interaction.customId === 'astra_setup_ready') {
-    return await interaction.reply({
-        content: '✅ Ready system setup coming next.',
-        ephemeral: true
-    });
-}
+          if (interaction.customId.startsWith('ready_')) {
+            return await handleReadyInteraction(interaction, client);
+          }
 
-if (interaction.customId === 'astra_setup_prefix') {
-    return await interaction.reply({
-        content: '🔧 Prefix setup coming next.',
-        ephemeral: true
-    });
-}
+          if (interaction.customId.startsWith('match_')) {
+            return await handleResultInteraction(interaction, client);
+          }
 
-// ===== EXISTING BUTTONS =====
-
-if (interaction.customId === 'astra_set_2v2') {
-    return await showChannelSelector(interaction, '2v2');
-}
-
-if (interaction.customId === 'astra_set_3v3') {
-    return await showChannelSelector(interaction, '3v3');
-}
-
-if (interaction.customId === 'astra_set_4v4') {
-    return await showChannelSelector(interaction, '4v4');
-}
-
-if (interaction.customId === 'astra_set_custom') {
-    return await showChannelSelector(interaction, 'custom');
-}
-
-if (interaction.customId === 'astra_set_results') {
-    return await showChannelSelector(interaction, 'results');
-}
-if (interaction.customId === 'astra_add_custom_queue') {
-
-    const modal = new ModalBuilder()
-        .setCustomId('astra_create_queue_modal')
-        .setTitle('Create Custom Queue');
-
-    const queueName =
-        new TextInputBuilder()
-            .setCustomId('queue_name')
-            .setLabel('Queue Name')
-            .setStyle(TextInputStyle.Short)
-            .setRequired(true)
-            .setMaxLength(50);
-
-    const queueSize =
-        new TextInputBuilder()
-            .setCustomId('queue_size')
-            .setLabel('Queue Size')
-            .setStyle(TextInputStyle.Short)
-            .setRequired(true)
-            .setPlaceholder('10');
-
-    modal.addComponents(
-        new ActionRowBuilder().addComponents(queueName),
-        new ActionRowBuilder().addComponents(queueSize)
-    );
-
-    return await interaction.showModal(modal);
-}
-
-if (
-    interaction.customId ===
-    'astra_manage_custom_queues'
-) {
-    return await showManageQueuesPanel(
-        interaction
-    );
-}
-
-if (interaction.customId.startsWith('report_')) {
-    return await handleReportButton(interaction);
-}
-
-if (interaction.customId.startsWith('matchinfo_')) {
-    return await handleMatchInfoButton(interaction);
-}
-
-return await handleReadyButton(interaction);
+          console.warn(`[InteractionCreate] Unhandled button customId: ${interaction.customId}`);
+          return await interaction.reply({ content: 'This button is not yet implemented or recognized.', ephemeral: true });
         } catch (error) {
-          console.error('[Button Handler] Error handling button interaction:', {
-            customId: interaction.customId,
-            userId: interaction.user.id,
-            username: interaction.user.username,
-            guildId: interaction.guildId,
-            guildName: interaction.guild?.name || 'DM',
-            error: error.message,
-            stack: error.stack,
-            timestamp: new Date().toISOString()
-          });
-
-          if (DEBUG) {
-            console.error(`[DEBUG] Button error details:`, error);
-          }
-
-          try {
-            if (interaction.replied) {
-              await interaction.followUp({
-                content: '❌ Error processing button. Please try again.',
-                ephemeral: true
-              });
-            } else {
-              await interaction.reply({
-                content: '❌ Error processing button. Please try again.',
-                ephemeral: true
-              });
-            }
-          } catch (replyError) {
-            console.error('[Button Handler] Failed to send error reply:', {
-              customId: interaction.customId,
-              replyError: replyError.message
-            });
-          }
+          await handleInteractionError(error, 'Button Handler', interaction.customId);
         }
         return;
       }
-if (interaction.isStringSelectMenu()) {
 
-    if (
-        interaction.customId ===
-        'astra_manage_queue_select'
-    ) {
+      // ===== SELECT MENU INTERACTIONS (StringSelectMenu and ChannelSelectMenu) =====
+      if (interaction.isStringSelectMenu() || interaction.isChannelSelectMenu()) {
+        try {
+          if (interaction.customId === 'astra_manage_queue_select' ||
+              interaction.customId === 'astra_custom_queue_channel' ||
+              interaction.customId.startsWith('queue_channel_select:') // For changing custom queue channel
+            ) {
+            return await handleQueueInteraction(interaction, client);
+          }
 
-        const queueId =
-            interaction.values[0];
+          if (interaction.customId.startsWith('astra_channel_select:')) {
+            return await handleSetupInteraction(interaction, client);
+          }
 
-        const queue =
-            await getCustomQueue(
-                queueId
-            );
+          if (interaction.customId.startsWith('match_mvp_select:')) {
+            return await handleResultInteraction(interaction, client);
+          }
 
-        if (!queue) {
-            return await interaction.reply({
-                content:
-                    '❌ Queue not found.',
-                ephemeral: true
-            });
+          console.warn(`[InteractionCreate] Unhandled select menu customId: ${interaction.customId}`);
+          return await interaction.reply({ content: 'This select menu is not yet implemented or recognized.', ephemeral: true });
+        } catch (error) {
+          await handleInteractionError(error, 'Select Menu Handler', interaction.customId);
         }
-
-        const {
-            EmbedBuilder,
-            ActionRowBuilder,
-            ButtonBuilder,
-            ButtonStyle
-        } = require('discord.js');
-
-        const embed =
-            new EmbedBuilder()
-                .setTitle(
-                    `Manage Queue: ${queue.queue_name}`
-                )
-                .setDescription(
-`Size: ${queue.queue_size}
-
-Channel:
-<#${queue.channel_id}>`
-                );
-
-        const row =
-            new ActionRowBuilder()
-                .addComponents(
-
-                    new ButtonBuilder()
-                        .setCustomId(
-                            `queue_rename:${queue.id}`
-                        )
-                        .setLabel(
-                            'Rename'
-                        )
-                        .setStyle(
-                            ButtonStyle.Primary
-                        ),
-
-                    new ButtonBuilder()
-                        .setCustomId(
-                            `queue_size:${queue.id}`
-                        )
-                        .setLabel(
-                            'Change Size'
-                        )
-                        .setStyle(
-                            ButtonStyle.Secondary
-                        ),
-
-                    new ButtonBuilder()
-                        .setCustomId(
-                            `queue_delete:${queue.id}`
-                        )
-                        .setLabel(
-                            'Delete'
-                        )
-                        .setStyle(
-                            ButtonStyle.Danger
-                        )
-                );
-
-        return await interaction.update({
-            content: '',
-            embeds: [embed],
-            components: [row]
-        });
-    }
-}
-if (interaction.isChannelSelectMenu()) {
-const {
-    showChannelsPanel,
-    showChannelSelector,
-    showManageQueuesPanel
-} = require('../utils/setupManager'); {
-
-    const pending =
-        pendingCustomQueues.get(
-            interaction.user.id
-        );
-
-    if (!pending) {
-        return await interaction.reply({
-            content:
-                '❌ Queue creation expired.',
-            ephemeral: true
-        });
-    }
-
-    const channelId =
-        interaction.values[0];
-
-    await createCustomQueue(
-        interaction.guildId,
-        pending.queueName,
-        pending.queueSize,
-        channelId
-    );
-
-    pendingCustomQueues.delete(
-        interaction.user.id
-    );
-
-    return await interaction.update({
-        content:
-            `✅ Custom Queue Created
-
-Name: ${pending.queueName}
-Size: ${pending.queueSize}
-Channel: <#${channelId}>`,
-        components: []
-    });
-}
-    const [prefix, type] =
-        interaction.customId.split(':');
-
-    if (prefix !== 'astra_channel_select') {
         return;
-    }
+      }
 
-    const channelId = interaction.values[0];
+      // ===== MODAL SUBMIT INTERACTIONS =====
+      if (interaction.isModalSubmit()) {
+        try {
+          if (interaction.customId === 'astra_create_queue_modal' ||
+              interaction.customId.startsWith('queue_rename_modal:') ||
+              interaction.customId.startsWith('queue_size_modal:')
+            ) {
+            return await handleQueueInteraction(interaction, client);
+          }
 
-    const map = {
-        '2v2': 'two_v_two_channel_id',
-        '3v3': 'three_v_three_channel_id',
-        '4v4': 'four_v_four_channel_id',
-        'custom': 'custom_queue_channel_id',
-        'results': 'results_channel_id'
-    };
+          if (interaction.customId.startsWith('guild_config_modal:')) {
+            return await handleSetupInteraction(interaction, client);
+          }
 
-    const key = map[type];
-
-    if (!key) {
-        return;
-    }
-
-    await updateGuildConfig(
-        interaction.guildId,
-        key,
-        channelId
-    );
-
-    return await interaction.update({
-        content: `✅ ${type} channel saved: <#${channelId}>`,
-        embeds: [],
-        components: []
-    });
-}
-if (interaction.isModalSubmit()) {
-
-    if (
-        interaction.customId ===
-        'astra_create_queue_modal'
-    ) {
-
-        const queueName =
-            interaction.fields.getTextInputValue(
-                'queue_name'
-            );
-
-        const queueSize =
-            parseInt(
-                interaction.fields.getTextInputValue(
-                    'queue_size'
-                ),
-                10
-            );
-
-        if (
-            Number.isNaN(queueSize) ||
-            queueSize < 2
-        ) {
-            return await interaction.reply({
-                content:
-                    '❌ Queue size must be a number greater than 1.',
-                ephemeral: true
-            });
+          console.warn(`[InteractionCreate] Unhandled modal customId: ${interaction.customId}`);
+          return await interaction.reply({ content: 'This modal is not yet implemented or recognized.', ephemeral: true });
+        } catch (error) {
+          await handleInteractionError(error, 'Modal Handler', interaction.customId);
         }
+        return;
+      }
 
-        pendingCustomQueues.set(
-            interaction.user.id,
-            {
-                queueName,
-                queueSize
-            }
-        );
-
-        const {
-            ActionRowBuilder,
-            ChannelSelectMenuBuilder,
-            ChannelType
-        } = require('discord.js');
-
-        const row =
-            new ActionRowBuilder().addComponents(
-                new ChannelSelectMenuBuilder()
-                    .setCustomId(
-                        'astra_custom_queue_channel'
-                    )
-                    .setPlaceholder(
-                        'Select queue channel'
-                    )
-                    .setChannelTypes(
-                        ChannelType.GuildText
-                    )
-            );
-
-        return await interaction.reply({
-            content:
-                'Select the channel for this queue.',
-            components: [row],
-            ephemeral: true
-        });
-    }
-}
       // ===== SLASH COMMAND INTERACTIONS =====
       if (
-    !interaction.isChatInputCommand() &&
-    !interaction.isChannelSelectMenu()
-) {
+        !interaction.isChatInputCommand()
+      ) {
         if (DEBUG) {
           console.log(`[DEBUG] Ignoring non-command interaction: ${interaction.type}`);
         }

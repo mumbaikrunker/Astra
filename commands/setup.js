@@ -28,24 +28,7 @@ module.exports = {
         const embed = new EmbedBuilder()
             .setColor(0x5865f2)
             .setTitle('⚙️ ASTRA Setup Panel')
-            .setDescription(
-`Configure your ASTRA matchmaking system.
-
-📁 Channels
-Configure queue and results channels.
-
-⏱️ Timers
-Configure ready timeout, report timeout and match lifetime.
-
-✅ Ready System
-Configure how players ready up.
-
-🔧 Prefix
-Configure bot prefix commands.
-
-━━━━━━━━━━━━━━━━━━
-ASTRA Competitive System`
-            );
+            .setDescription('Configure your ASTRA matchmaking system.');
 
         const row1 = new ActionRowBuilder().addComponents(
             new ButtonBuilder()

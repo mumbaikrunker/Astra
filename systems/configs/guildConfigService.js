@@ -51,8 +51,8 @@ async function updateGuildConfig(guildId, key, value) {
 
     results_channel_id: 'results_channel_id',
 
-    changable_results_for_admins:
-      'changable_results_for_admins'
+    changable_results_for_admins: 'changable_results_for_admins',
+    admin_results_channel_id: 'admin_results_channel_id' // New for Phase 5
   };
 
   const column = allowed[key];
@@ -110,7 +110,8 @@ async function resetGuildConfig(guildId) {
       four_v_four_channel_id = NULL,
       custom_queue_channel_id = NULL,
 
-      results_channel_id = NULL
+      results_channel_id = NULL,
+      admin_results_channel_id = NULL
     WHERE guild_id = $1
     RETURNING *
   `;

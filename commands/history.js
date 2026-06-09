@@ -38,14 +38,13 @@ module.exports = {
         .join('\n');
 
       const embed = new EmbedBuilder()
-        .setColor(0x5865F2)
+        .setColor('#7289DA') // Discord Blurple
         .setAuthor({
-          name: '📜 ASTRA Match History'
+          name: `${interaction.user.username}'s Match History`,
+          iconURL: interaction.user.displayAvatarURL({ dynamic: true })
         })
         .setThumbnail(
-          interaction.user.displayAvatarURL({
-            size: 256
-          })
+          'https://i.imgur.com/P4W0v0W.png' // Placeholder for a Krunker-themed history icon
         )
         .setDescription(historyText)
         .setFooter({

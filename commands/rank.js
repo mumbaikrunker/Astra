@@ -25,11 +25,10 @@ module.exports = {
     const totalGames = userData.wins + userData.losses;
 
     const embed = new EmbedBuilder()
-      .setTitle('🏅 Competitive Rank')
-      .setColor(0xf1c40f)
-      .setDescription(
-        `Current competitive standing for **${userData.username}**`
-      )
+      .setTitle(`🏅 ${interaction.user.username}'s Competitive Rank`)
+      .setColor('#FFD700') // Gold color
+      .setThumbnail(interaction.user.displayAvatarURL({ dynamic: true, size: 128 }))
+      .setDescription(`Your current competitive standing in Astra.`)
       .addFields(
         {
           name: '📈 Leaderboard Rank',

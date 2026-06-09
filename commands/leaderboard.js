@@ -1,6 +1,7 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const { getTopPlayers } = require('../systems/ratings/leaderboardService');
 
+// Helper function to format player data for embeds (not used directly in this version, but good practice)
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('leaderboard')
@@ -16,29 +17,21 @@ module.exports = {
       });
     }
 
-    const medals = ['🥇', '🥈', '🥉'];
-
-    const leaderboardText = players
-      .map((player, index) => {
-        const badge = medals[index] || `#${index + 1}`;
-
-        const games =
-          Number(player.wins) +
-          Number(player.losses);
-
-        return `${badge} **${player.username}**
-🏆 ${player.rating} Rating
-📊 ${player.wins}W-${player.losses}L (${games} games)`;
-      })
-      .join('\n\n');
+    const medals = ['🥇', '🥈', '🥉']; // Define medals here
 
     const embed = new EmbedBuilder()
       .setTitle('🏆 Astra Global Leaderboard')
-      .setColor(0xf1c40f)
-      .setDescription(leaderboardText)
-      .setFooter({
-        text: 'Top Competitive Players'
-      })
+      .setColor('#FFD700') // Gold color for a premium feel
+      .setDescription('Discover the elite players dominating the competitive scene!')
+      .setThumbnail(interaction.guild.iconURL({ dynamic: true, size: 128 })) // Guild icon as thumbnail
+      .addFields(
+        players.map((player, index) => ({
+          name: `${medals[index] || `Rank #${index + 1}`} ${player.username}`,
+          value: `**Rating:** ${player.rating} | **Record:** ${player.wins}W - ${player.losses}L (${player.wins + player.losses} games)`,
+          inline: false,
+        }))
+      )
+      .setFooter({ text: 'Astra Competitive Leaderboard' })
       .setTimestamp();
 
     await interaction.reply({
