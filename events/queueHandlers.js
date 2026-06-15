@@ -160,7 +160,6 @@ async function handleQueueInteraction(interaction, client) {
         if (interaction.customId.startsWith('queue_delete_confirm:')) {
             const queueId = interaction.customId.split(':')[1];
             await deleteCustomQueue(queueId);
-            await interaction.update({ content: '✅ Queue deleted successfully.', components: [], embeds: [] });
             // Refresh the manage queues panel
             return await showManageQueuesPanel(interaction);
         }
@@ -218,7 +217,6 @@ async function handleQueueInteraction(interaction, client) {
                 return await interaction.reply({ content: '❌ Failed to update queue channel.', ephemeral: true });
             }
 
-            await interaction.update({ content: `✅ Queue channel updated to <#${newChannelId}>.`, components: [], embeds: [] });
             // Refresh the queue management panel
             return await showQueueManagementPanel(interaction, updatedQueue);
         }
@@ -260,7 +258,6 @@ async function handleQueueInteraction(interaction, client) {
                 return await interaction.reply({ content: '❌ Failed to rename queue.', ephemeral: true });
             }
 
-            await interaction.update({ content: `✅ Queue renamed to **${newQueueName}**.`, components: [], embeds: [] });
             // Refresh the queue management panel with the updated queue
             return await showQueueManagementPanel(interaction, updatedQueue);
         }
@@ -279,7 +276,6 @@ async function handleQueueInteraction(interaction, client) {
                 return await interaction.reply({ content: '❌ Failed to change queue size.', ephemeral: true });
             }
 
-            await interaction.update({ content: `✅ Queue size changed to **${newQueueSize}**.`, components: [], embeds: [] });
             // Refresh the queue management panel with the updated queue
             return await showQueueManagementPanel(interaction, updatedQueue);
         }

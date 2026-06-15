@@ -149,37 +149,36 @@ const row3 = new ActionRowBuilder().addComponents(
         .setStyle(ButtonStyle.Danger)
 );
 
-        if (interaction.isButton()) {
-            return await interaction.update({
-                embeds: [embed],
-                components: [row1, row2, row3]
-            });
-        }
+ const payload = {
+    embeds: [embed],
+    components: [row1, row2, row3]
+};
 
-        return await interaction.reply({
-            embeds: [embed],
-            components: [row1, row2, row3]
-        });
-
-    } catch (error) {
-        console.error('[SETUP MANAGER ERROR]', error);
-
-        if (!interaction.replied) {
-            return await interaction.reply({
-                content: `❌ Setup error: ${error.message}`
-            });
-        }
-    }
+if (
+    interaction.isButton() ||
+    interaction.isModalSubmit() ||
+    interaction.isStringSelectMenu() ||
+    interaction.isChannelSelectMenu()
+) {
+    return await interaction.update(payload);
 }
 
-async function showChannelSelector(interaction, type) {
-    const row = new ActionRowBuilder().addComponents(
-        new ChannelSelectMenuBuilder()
-            .setCustomId(`astra_channel_select:${type}`)
-            .setPlaceholder('Select a channel...')
-            .setChannelTypes(ChannelType.GuildText)
-    );
+return await interaction.reply(payload);
 
+} catch (error) {
+    console.error('[SETUP MANAGER ERROR]', error);
+
+    const errorMsg = {
+        content: `❌ Setup error: ${error.message}`,
+        ephemeral: true
+    };
+
+    if (interaction.replied || interaction.deferred) {
+        return await interaction.followUp(errorMsg);
+    }
+
+    return await interaction.reply(errorMsg);
+}
     return await interaction.update({
         content: `Select the channel for ${type}`,
         embeds: [],
@@ -201,6 +200,8 @@ async function showManageQueuesPanel(
             content:
                 '❌ No custom queues found.'
         });
+        const msg = { content: '❌ No custom queues found.', components: [], embeds: [] };
+        return (interaction.isButton() || interaction.isStringSelectMenu()) ? await interaction.update(msg) : await interaction.reply(msg);
     }
 
     const menu =
@@ -229,6 +230,11 @@ async function showManageQueuesPanel(
             'Select a queue to manage.',
         components: [row]
     });
+    const payload = { content: 'Select a queue to manage.', components: [row], embeds: [] };
+    if (interaction.isButton() || interaction.isStringSelectMenu()) {
+        return await interaction.update(payload);
+    }
+    return await interaction.reply(payload);
 }
 
 // Phase 2: Timers Setup Panel

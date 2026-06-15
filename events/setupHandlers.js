@@ -59,7 +59,6 @@ async function handleSetupInteraction(interaction, client) {
                 return await showChannelSelector(interaction, 'admin_results');
             case 'astra_manage_custom_queues':
                 return await showManageQueuesPanel(interaction);
-            case 'astra_main_menu': // Global Back Button
             case 'guild_config_set_ready_method:button': // New for Phase 3
                 await updateGuildConfig(interaction.guildId, 'ready_method', 'button');
                 return await showReadySystemPanel(interaction);

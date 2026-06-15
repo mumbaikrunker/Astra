@@ -69,6 +69,7 @@ module.exports = {
         try {
           if (interaction.customId.startsWith('astra_setup_') ||
               interaction.customId.startsWith('astra_set_') ||
+              interaction.customId.startsWith('guild_config_modal:') ||
               interaction.customId === 'astra_manage_custom_queues' ||
               interaction.customId === 'astra_main_menu' || // Back button for setup panels
               interaction.customId.startsWith('guild_config_set_ready_method:') // For setting ready method
