@@ -1,6 +1,6 @@
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, PermissionsBitField } = require('discord.js'); // Removed StringSelectMenuBuilder as it's not used here
 const { getMatch, updateMatchStatus } = require('../systems/matchmaking/matchService');
-const { applyMatchRatings } = require('../systems/ratings/ratingService');
+const { finalizeMatchResult } = require('../systems/ratings/ratingService');
 const { getGuildConfig } = require('../systems/configs/guildConfigService');
 
 function buildMatchInfoEmbed(match) {
@@ -76,11 +76,16 @@ async function handleMatchInfoButton(interaction) {
   const scoreA = outcome === 'A' ? 1 : outcome === 'B' ? 0 : 0;
   const scoreB = outcome === 'B' ? 1 : outcome === 'A' ? 0 : 0;
 
-  const ratingChanges = await applyMatchRatings(matchId, match.team_a, match.team_b, outcome);
-  await updateMatchStatus(matchId, 'complete', {
-    winner: outcome === 'A' ? 'Team A' : outcome === 'B' ? 'Team B' : 'Tie',
-    score: { a: scoreA, b: scoreB },
-    resolvedBy: interaction.user.tag,
+  const { ratingChanges } = await finalizeMatchResult({
+    matchId,
+    teamA: match.team_a,
+    teamB: match.team_b,
+    outcome,
+    resultPayload: {
+      winner: outcome === 'A' ? 'Team A' : outcome === 'B' ? 'Team B' : 'Tie',
+      score: { a: scoreA, b: scoreB },
+      resolvedBy: interaction.user.tag,
+    },
   });
 
   // Phase 5 & 6: Enhanced Result UI

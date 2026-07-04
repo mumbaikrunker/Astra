@@ -1,6 +1,9 @@
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, PermissionsBitField } = require('discord.js');
-const { getMatch, updateMatchStatus } = require('../systems/matchmaking/matchService');
-const { applyMatchRatings } = require('../systems/ratings/ratingService');
+const { getMatch } = require('../systems/matchmaking/matchService');
+const { finalizeMatchResult } = require('../systems/ratings/ratingService');
+
+// Pending reports auto-expire to avoid memory growth (default 30 minutes)
+const PENDING_REPORT_TTL_MS = 30 * 60 * 1000;
 
 const pendingReports = new Map();
 
@@ -32,11 +35,19 @@ function buildActionRow(reportId) {
 
 function createPendingReport(interaction, reportData) {
   const reportId = `${interaction.user.id}-${Date.now()}`;
+  const timeoutId = setTimeout(() => {
+    const current = pendingReports.get(reportId);
+    if (current && !current.handled) {
+      pendingReports.delete(reportId);
+    }
+  }, PENDING_REPORT_TTL_MS);
+
   pendingReports.set(reportId, {
     ...reportData,
     reporterId: interaction.user.id,
     reporterTag: interaction.user.tag,
     createdAt: Date.now(),
+    timeoutId,
   });
   return reportId;
 }
@@ -52,6 +63,8 @@ async function handleReportButton(interaction) {
   }
 
   if (action === 'report_cancel') {
+    const toClear = report.timeoutId;
+    if (toClear) clearTimeout(toClear);
     pendingReports.delete(reportId);
     await interaction.update({ content: 'Match report cancelled.', embeds: [], components: [] });
     return;
@@ -66,6 +79,7 @@ async function handleReportButton(interaction) {
   }
 
   report.handled = true;
+  if (report.timeoutId) clearTimeout(report.timeoutId);
   pendingReports.delete(reportId);
 
   const match = await getMatch(report.matchId);
@@ -75,11 +89,24 @@ async function handleReportButton(interaction) {
   }
 
   const outcome = report.winner === 'a' ? 'A' : report.winner === 'b' ? 'B' : 'TIE';
-  const ratingChanges = await applyMatchRatings(report.matchId, report.teamA, report.teamB, outcome);
-  await updateMatchStatus(report.matchId, 'complete', {
-    winner: report.winnerLabel,
-    score: { a: report.scoreA, b: report.scoreB },
-  });
+  let ratingChanges = [];
+  try {
+    const res = await finalizeMatchResult({
+      matchId: report.matchId,
+      teamA: report.teamA,
+      teamB: report.teamB,
+      outcome,
+      resultPayload: {
+        winner: report.winnerLabel,
+        score: { a: report.scoreA, b: report.scoreB },
+      },
+    });
+    ratingChanges = res.ratingChanges || [];
+  } catch (err) {
+    console.error('Failed to finalize match result:', err);
+    await interaction.update({ content: '❌ Failed to finalize match result. Please try again later or contact an admin.', embeds: [], components: [] });
+    return;
+  }
 
   const resultEmbed = new EmbedBuilder()
     .setTitle('Match Report Complete')

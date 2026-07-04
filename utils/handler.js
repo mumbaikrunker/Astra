@@ -204,27 +204,12 @@ async function loadEvents(client, dirPath = path.join(__dirname, '../events')) {
         delete require.cache[require.resolve(fullPath)];
         const event = require(fullPath);
 
-        // Validate event structure
-        if (!event.name || typeof event.name !== 'string') {
-          malformedEvents.push({
-            file: fullPath,
-            reason: `Invalid event name: ${event.name} (must be a non-empty string)`,
-            type: 'invalid_name'
-          });
+        // Only treat files with event-like exports as Discord events.
+        // Helper modules such as setupHandlers.js or queueHandlers.js are intentionally
+        // exported from the events folder but are not event definitions and should be skipped.
+        if (!event || typeof event !== 'object' || !event.name || typeof event.name !== 'string' || !event.execute || typeof event.execute !== 'function') {
           if (DEBUG) {
-            console.log(`[DEBUG] ❌ Invalid event name: ${entry.name}`);
-          }
-          continue;
-        }
-
-        if (!event.execute || typeof event.execute !== 'function') {
-          malformedEvents.push({
-            file: fullPath,
-            reason: `Missing or invalid "execute" function`,
-            type: 'missing_execute'
-          });
-          if (DEBUG) {
-            console.log(`[DEBUG] ❌ Missing execute function: ${event.name}`);
+            console.log(`[DEBUG] Skipping non-event module: ${entry.name}`);
           }
           continue;
         }

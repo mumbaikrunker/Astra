@@ -23,10 +23,30 @@ async function query(text, params) {
   return result;
 }
 
+async function withTransaction(callback) {
+  const client = await getPool().connect();
+
+  try {
+    await client.query('BEGIN');
+    const result = await callback(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (error) {
+    try {
+      await client.query('ROLLBACK');
+    } catch (rollbackError) {
+      console.error('Failed to rollback PostgreSQL transaction:', rollbackError);
+    }
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 const pool = {
   query: (...args) => getPool().query(...args),
   connect: (...args) => getPool().connect(...args),
   end: (...args) => (activePool ? activePool.end(...args) : Promise.resolve()),
 };
 
-module.exports = { pool, query, getPool };
+module.exports = { pool, query, getPool, withTransaction };

@@ -27,6 +27,21 @@ module.exports = {
   name: 'interactionCreate',
   once: false,
   async execute(interaction, client) {
+    const sendInteractionResponse = async (interaction, payload) => {
+      if (interaction.replied) {
+        return interaction.followUp(payload);
+      }
+
+      if (interaction.deferred) {
+        if (interaction.isMessageComponent() || interaction.isModalSubmit()) {
+          return interaction.update(payload);
+        }
+        return interaction.editReply(payload);
+      }
+
+      return interaction.reply(payload);
+    };
+
     // Helper function for error handling
     const handleInteractionError = async (error, handlerName, customId = 'N/A') => {
       console.error(`[${handlerName}] Error handling interaction:`, {
@@ -46,11 +61,7 @@ module.exports = {
 
       try {
         const errorMessage = `❌ Error processing ${handlerName.toLowerCase().replace(' handler', '')}. Please try again.`;
-        if (interaction.replied || interaction.deferred) {
-          await interaction.followUp({ content: errorMessage, ephemeral: true });
-        } else {
-          await interaction.reply({ content: errorMessage, ephemeral: true });
-        }
+        await sendInteractionResponse(interaction, { content: errorMessage, ephemeral: true });
       } catch (replyError) {
         console.error(`[${handlerName}] Failed to send error reply:`, {
           customId: customId,
@@ -96,7 +107,7 @@ module.exports = {
           }
 
           console.warn(`[InteractionCreate] Unhandled button customId: ${interaction.customId}`);
-          return await interaction.reply({ content: 'This button is not yet implemented or recognized.', ephemeral: true });
+          return await sendInteractionResponse(interaction, { content: 'This button is not yet implemented or recognized.', ephemeral: true });
         } catch (error) {
           await handleInteractionError(error, 'Button Handler', interaction.customId);
         }
@@ -122,7 +133,7 @@ module.exports = {
           }
 
           console.warn(`[InteractionCreate] Unhandled select menu customId: ${interaction.customId}`);
-          return await interaction.reply({ content: 'This select menu is not yet implemented or recognized.', ephemeral: true });
+          return await sendInteractionResponse(interaction, { content: 'This select menu is not yet implemented or recognized.', ephemeral: true });
         } catch (error) {
           await handleInteractionError(error, 'Select Menu Handler', interaction.customId);
         }
@@ -144,7 +155,7 @@ module.exports = {
           }
 
           console.warn(`[InteractionCreate] Unhandled modal customId: ${interaction.customId}`);
-          return await interaction.reply({ content: 'This modal is not yet implemented or recognized.', ephemeral: true });
+          return await sendInteractionResponse(interaction, { content: 'This modal is not yet implemented or recognized.', ephemeral: true });
         } catch (error) {
           await handleInteractionError(error, 'Modal Handler', interaction.customId);
         }
@@ -207,7 +218,7 @@ module.exports = {
         }
 
         try {
-          await interaction.reply({
+          await sendInteractionResponse(interaction, {
             content: '❌ Invalid command format. Please try again.',
             ephemeral: true
           });
@@ -252,7 +263,7 @@ module.exports = {
         }
 
         try {
-          await interaction.reply({
+          await sendInteractionResponse(interaction, {
             content: `❌ Command \`/${commandName}\` not found.\n\nUse \`/help\` to see available commands.`,
             ephemeral: true
           });
@@ -335,7 +346,7 @@ module.exports = {
         try {
           if (interaction.replied) {
             // Already sent a response - send followUp
-            await interaction.followUp({
+            await sendInteractionResponse(interaction, {
               content: errorMessage,
               ephemeral: true
             });
@@ -354,7 +365,7 @@ module.exports = {
             }
           } else {
             // No prior response - send new reply
-            await interaction.reply({
+            await sendInteractionResponse(interaction, {
               content: errorMessage,
               ephemeral: true
             });
@@ -398,7 +409,7 @@ module.exports = {
       // Attempt to notify user if possible
       try {
         if (interaction && typeof interaction.reply === 'function') {
-          await interaction.reply({
+          await sendInteractionResponse(interaction, {
             content: '❌ An unexpected error occurred. Please try again later.',
             ephemeral: true
           });

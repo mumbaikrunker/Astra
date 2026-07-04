@@ -1,5 +1,26 @@
 const { query } = require('../../database/postgres');
 
+const guildConfigCache = new Map();
+const guildConfigCacheTtlMs = 5000;
+
+function getCachedGuildConfig(guildId) {
+  const cached = guildConfigCache.get(guildId);
+  if (!cached) return null;
+  if (Date.now() - cached.timestamp > guildConfigCacheTtlMs) {
+    guildConfigCache.delete(guildId);
+    return null;
+  }
+  return cached.value;
+}
+
+function setCachedGuildConfig(guildId, config) {
+  guildConfigCache.set(guildId, { value: config, timestamp: Date.now() });
+}
+
+function invalidateGuildConfigCache(guildId) {
+  guildConfigCache.delete(guildId);
+}
+
 async function createGuildConfig(guildId) {
   const sql = `
     INSERT INTO guild_configs (guild_id)
@@ -13,6 +34,10 @@ async function createGuildConfig(guildId) {
 }
 
 async function getGuildConfig(guildId) {
+  const cachedConfig = getCachedGuildConfig(guildId);
+  if (cachedConfig) {
+    return cachedConfig;
+  }
   const sql = `
     SELECT *
     FROM guild_configs
@@ -23,10 +48,12 @@ async function getGuildConfig(guildId) {
   const res = await query(sql, [guildId]);
 
   if (res.rows[0]) {
+    setCachedGuildConfig(guildId, res.rows[0]);
     return res.rows[0];
   }
 
-  return createGuildConfig(guildId);
+  const createdConfig = await createGuildConfig(guildId);
+  return createdConfig;
 }
 
 async function updateGuildConfig(guildId, key, value) {
@@ -74,6 +101,8 @@ async function updateGuildConfig(guildId, key, value) {
     value,
     guildId
   ]);
+
+  invalidateGuildConfigCache(guildId);
 
   if (res.rows[0]) {
     return res.rows[0];

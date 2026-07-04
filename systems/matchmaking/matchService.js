@@ -16,7 +16,7 @@ async function getMatch(matchId) {
   return result.rows[0] || null;
 }
 
-async function updateMatchStatus(matchId, status, resultPayload = null) {
+async function updateMatchStatus(matchId, status, resultPayload = null, client = null) {
   const sql = `
     UPDATE matches
     SET status = $1,
@@ -26,7 +26,8 @@ async function updateMatchStatus(matchId, status, resultPayload = null) {
     RETURNING *
   `;
   const values = [status, resultPayload ? JSON.stringify(resultPayload) : null, matchId];
-  const result = await query(sql, values);
+  const runQuery = client ? client.query.bind(client) : query;
+  const result = await runQuery(sql, values);
   return result.rows[0];
 }
 
@@ -40,9 +41,16 @@ async function getActiveMatches(guildId) {
   return result.rows;
 }
 
+async function deleteMatch(matchId, client = null) {
+  const runQuery = client ? client.query.bind(client) : query;
+  const result = await runQuery('DELETE FROM matches WHERE id = $1 RETURNING *', [matchId]);
+  return result.rows[0] || null;
+}
+
 module.exports = {
   createMatch,
   getMatch,
   updateMatchStatus,
   getActiveMatches,
+  deleteMatch,
 };

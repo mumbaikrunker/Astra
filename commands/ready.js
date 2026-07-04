@@ -30,6 +30,8 @@ module.exports = {
     }
 
     const guildConfig = await getGuildConfig(interaction.guildId);
+    // Ensure the ready manager has the client reference before creating the session
+    setClient(interaction.client);
     const session = await createSession(interaction, queue, guildConfig.ready_timeout_seconds);
     if (!session) {
       const embed = new EmbedBuilder()
@@ -39,7 +41,6 @@ module.exports = {
         .setTimestamp();
       return await interaction.reply({ embeds: [embed], ephemeral: true });
     }
-
-    setClient(interaction.client);
+    
   },
 };

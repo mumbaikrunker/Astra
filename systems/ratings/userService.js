@@ -1,6 +1,6 @@
 const { query } = require('../../database/postgres');
 
-async function ensureUser(discordId, username) {
+async function ensureUser(discordId, username, client = null) {
   const sql = `
     INSERT INTO users (
       discord_id,
@@ -16,12 +16,14 @@ async function ensureUser(discordId, username) {
     RETURNING *;
   `;
 
-  const result = await query(sql, [discordId, username]);
+  const runQuery = client ? client.query.bind(client) : query;
+  const result = await runQuery(sql, [discordId, username]);
   return result.rows[0];
 }
 
-async function getUser(discordId) {
-  const result = await query(
+async function getUser(discordId, client = null) {
+  const runQuery = client ? client.query.bind(client) : query;
+  const result = await runQuery(
     `
     SELECT *
     FROM users
@@ -33,8 +35,9 @@ async function getUser(discordId) {
   return result.rows[0] || null;
 }
 
-async function updateRating(discordId, rating) {
-  const result = await query(
+async function updateRating(discordId, rating, client = null) {
+  const runQuery = client ? client.query.bind(client) : query;
+  const result = await runQuery(
     `
     UPDATE users
     SET rating = $1
@@ -47,9 +50,11 @@ async function updateRating(discordId, rating) {
   return result.rows[0];
 }
 
-async function updateRecord(discordId, resultType) {
+async function updateRecord(discordId, resultType, client = null) {
+  const runQuery = client ? client.query.bind(client) : query;
+
   if (resultType === 'win') {
-    await query(
+    await runQuery(
       `
       UPDATE users
       SET
@@ -62,7 +67,7 @@ async function updateRecord(discordId, resultType) {
   }
 
   if (resultType === 'loss') {
-    await query(
+    await runQuery(
       `
       UPDATE users
       SET

@@ -22,7 +22,29 @@ const {
 } = require('../utils/setupManager');
 
 const DEBUG = process.env.DEBUG === 'true';
-const pendingCustomQueues = new Map(); // Moved here from interactionCreate.js
+const pendingCustomQueues = new Map();
+const pendingQueueTimeoutMs = 5 * 60 * 1000;
+
+function clearPendingQueue(userId) {
+    const pending = pendingCustomQueues.get(userId);
+    if (pending?.timeoutId) {
+        clearTimeout(pending.timeoutId);
+    }
+    pendingCustomQueues.delete(userId);
+}
+
+function schedulePendingQueueCleanup(userId) {
+    const existing = pendingCustomQueues.get(userId);
+    if (existing?.timeoutId) {
+        clearTimeout(existing.timeoutId);
+    }
+
+    const timeoutId = setTimeout(() => {
+        pendingCustomQueues.delete(userId);
+    }, pendingQueueTimeoutMs);
+
+    return timeoutId;
+}
 
 async function handleQueueInteraction(interaction, client) {
     if (DEBUG) {
@@ -199,7 +221,7 @@ async function handleQueueInteraction(interaction, client) {
                 channelId
             );
 
-            pendingCustomQueues.delete(interaction.user.id);
+            clearPendingQueue(interaction.user.id);
 
             return await interaction.update({
                 content: `✅ Custom Queue Created\n\nName: ${pending.queueName}\nSize: ${pending.queueSize}\nChannel: <#${channelId}>`,
@@ -232,7 +254,12 @@ async function handleQueueInteraction(interaction, client) {
                 return await interaction.reply({ content: '❌ Queue size must be a number between 2 and 100.', ephemeral: true });
             }
 
-            pendingCustomQueues.set(interaction.user.id, { queueName, queueSize });
+            clearPendingQueue(interaction.user.id);
+            pendingCustomQueues.set(interaction.user.id, {
+                queueName,
+                queueSize,
+                timeoutId: schedulePendingQueueCleanup(interaction.user.id)
+            });
 
             const row = new ActionRowBuilder().addComponents(
                 new ChannelSelectMenuBuilder()

@@ -1,6 +1,7 @@
 const { Client, Collection, GatewayIntentBits } = require('discord.js');
 const { getRuntimeConfig } = require('./configs/config');
 const { loadCommands, loadEvents, commandRegistry } = require('./utils/handler');
+const { initializeDatabase } = require('./database/init');
 const ErrorHandler = require('./utils/errorHandler');
 
 const DEBUG = process.env.DEBUG === 'true';
@@ -55,6 +56,9 @@ process.on('SIGTERM', () => shutdown('SIGTERM'));
     console.log('\n' + '='.repeat(60));
     console.log('🤖 Astra Bot Starting...');
     console.log('='.repeat(60) + '\n');
+
+    console.log('[BOT] Ensuring database schema...');
+    await initializeDatabase();
 
     // Load commands
     console.log('[BOT] Loading commands...');
